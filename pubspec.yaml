@@ -1,0 +1,8 @@
+name: tsharp
+description: A programming language in dart.
+version: 0.0.1
+author: Tony Borchert
+homepage:
+
+environment:
+  sdk: ">=2.7.0 <3.0.0"
