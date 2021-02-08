@@ -1,8 +1,9 @@
 library tsharp;
 
-
 import 'dart:io' as io;
 import 'dart:math';
+
+
 
 
 class ParseException extends TSException {
@@ -37,7 +38,6 @@ class TSFunctionRunException extends RunException {
 enum IfParse { BOOL, CLOSURE, NOTHING }
 
 class Parsing {
-
   static List<Instruction> giveListOfInstructions(final String text, int line) {
     List<String> rawInstructions = text.stringWaitSplit(split: "\n");
     List<Instruction> instructions = <Instruction>[];
@@ -49,10 +49,15 @@ class Parsing {
       List<String> rawInstructionComponents = rawInstruction.stringWaitSplit();
       if (rawInstructionComponents.isEmpty) continue;
       if (rawInstructionComponents.first == "return") {
-        if(rawInstructionComponents.length!=2&&rawInstructionComponents.length!=1) throw ParseException(line, "a return statement should either only be return, or return a value");
+        if (rawInstructionComponents.length != 2 &&
+            rawInstructionComponents.length != 1)
+          throw ParseException(line,
+              "a return statement should either only be return, or return a value");
         instructions.add(
           ReturnInstruction(
-            rawInstructionComponents.length==2 ? Parsing.giveValue(rawInstructionComponents[1], line) : Abs(),
+            rawInstructionComponents.length == 2
+                ? Parsing.giveValue(rawInstructionComponents[1], line)
+                : Abs(),
             rawInstructionString,
           ),
         );
@@ -64,11 +69,15 @@ class Parsing {
           ),
         );
       } else if (rawInstructionComponents.first == "while") {
-        if(rawInstructionComponents.length!=3) throw ParseException(line, "a while statement should include while, a bool and the scope");
+        if (rawInstructionComponents.length != 3)
+          throw ParseException(line,
+              "a while statement should include while, a bool and the scope");
         Value value = giveValue(rawInstructionComponents[1], line);
-        if(value is! Bol &&value is DirectValue) throw ParseException(line, "a while statement cant use the type <${value.runtimeType} as a bool");
+        if (value is! Bol && value is DirectValue)
+          throw ParseException(line,
+              "a while statement cant use the type <${value.runtimeType} as a bool");
         ScopeFunction scope = giveFnc(rawInstructionComponents[2], line, null);
-        instructions.add(WhileInstruction(value,scope,rawInstruction));
+        instructions.add(WhileInstruction(value, scope, rawInstruction));
       } else if (rawInstructionComponents.first == "if") {
         if (rawInstructionComponents.length < 3)
           throw ParseException(line,
@@ -81,9 +90,9 @@ class Parsing {
             if ((ifInstruction as IfElseInstruction).elseScopeFunction !=
                 null) {
               if ((ifInstruction as IfElseInstruction)
-                  .elseScopeFunction
-                  .instructions
-                  .length ==
+                      .elseScopeFunction
+                      .instructions
+                      .length ==
                   1) {
                 if ((ifInstruction as IfElseInstruction)
                     .elseScopeFunction
@@ -119,7 +128,7 @@ class Parsing {
             next = IfParse.CLOSURE;
           } else if (next == IfParse.CLOSURE) {
             ScopeFunction value =
-            Parsing.giveFnc(rawInstructionComponent, line, null);
+                Parsing.giveFnc(rawInstructionComponent, line, null);
             IfInstruction instruction = getLowestInstruction();
             if (instruction.scopeFunction == null) {
               instruction.scopeFunction = value;
@@ -163,7 +172,7 @@ class Parsing {
         }
         instructions.add(instruction);
       } else if ((rawInstructionComponents.length == 4 &&
-          rawInstructionComponents[2] == "=") ||
+              rawInstructionComponents[2] == "=") ||
           rawInstructionComponents.length == 2) {
         if (rawInstructionComponents[0] == "var" ||
             rawInstructionComponents[0] == "let") {
@@ -173,15 +182,15 @@ class Parsing {
           instructions.add(
             rawInstructionComponents[0] == "let"
                 ? ConstantDeclarativeInstruction(
-              rawInstructionComponents[1],
-              value,
-              rawInstructionString,
-            )
+                    rawInstructionComponents[1],
+                    value,
+                    rawInstructionString,
+                  )
                 : DeclarativeInstruction(
-              rawInstructionComponents[1],
-              value,
-              rawInstructionString,
-            ),
+                    rawInstructionComponents[1],
+                    value,
+                    rawInstructionString,
+                  ),
           );
         } else {
           throw ParseException(line,
@@ -197,12 +206,12 @@ class Parsing {
         );
       } else if (rawInstructionComponents.length == 1) {
         final Value singleFunctionCallInstructionValue =
-        Parsing.giveValue(rawInstruction, line);
+            Parsing.giveValue(rawInstruction, line);
         if (singleFunctionCallInstructionValue is! Executioner)
           throw ParseException(line,
               "Value from type ${singleFunctionCallInstructionValue.runtimeType} is unused");
         final SingleFunctionCallInstruction singleFunctionCallInstruction =
-        SingleFunctionCallInstruction(
+            SingleFunctionCallInstruction(
           singleFunctionCallInstructionValue,
           rawInstructionString,
         );
@@ -221,7 +230,7 @@ class Parsing {
     if (string[0] == "{" && string[string.length - 1] == "}") {
       string = string.substring(1, string.length - 1);
       final List<Instruction> instructions =
-      giveListOfInstructions(string, line);
+          giveListOfInstructions(string, line);
       if (parameters == null) {
         return ScopeFunction(instructions);
       }
@@ -344,7 +353,7 @@ class Main {
     try {
       print("PARSING BEGUN\n");
       MainFunction mainFunction =
-      MainFunction(Parsing.giveListOfInstructions(newText, 0));
+          MainFunction(Parsing.giveListOfInstructions(newText, 0));
       stopwatch.stop();
       print("PARSING DONE");
       print("  TIME: " +
@@ -460,11 +469,11 @@ class Execution {
       TSFunction tsFunction = TSFunction
           .tsFunctions[(executioner.function as SystemVariableGet).variable];
       if (tsFunction.maxParameterCount <=
-          executioner.functionParameters.length &&
+              executioner.functionParameters.length &&
           tsFunction.minParameterCount >=
               executioner.functionParameters.length) {
         try {
-          return tsFunction.inputHandler(newParameters);
+          return tsFunction.inputHandler(newParameters,this);
         } catch (error) {
           throwError((error as TSFunctionRunException).message, instruction);
         }
@@ -550,16 +559,16 @@ class Execution {
           throwError("You can't modify the tsFunction " + instruction.variable,
               instruction.debugInstruction);
         Value finalValue =
-        giveUsableValue(instruction.value, instruction.debugInstruction);
+            giveUsableValue(instruction.value, instruction.debugInstruction);
         if (instruction is DeclarativeInstruction) {
           if (variables[instruction.variable] == null) {
             if (instruction.value is Fnc) {
               (instruction.value as Fnc).name = instruction.variable;
             }
             variables[instruction.variable] =
-            instruction is ConstantDeclarativeInstruction
-                ? ConstantVariable(finalValue)
-                : Variable(finalValue);
+                instruction is ConstantDeclarativeInstruction
+                    ? ConstantVariable(finalValue)
+                    : Variable(finalValue);
           } else {
             throwError(
                 "You can't modify a variable/constant that has already been declared in this scope",
@@ -567,8 +576,8 @@ class Execution {
           }
         } else if (instruction is ModifierInstruction) {
           if (variableOfString(
-              instruction.variable, instruction.debugInstruction)
-          is! ConstantVariable) {
+                  instruction.variable, instruction.debugInstruction)
+              is! ConstantVariable) {
             changeValueOfVariable(
                 instruction.variable, finalValue, instruction.debugInstruction);
           } else {
@@ -580,7 +589,7 @@ class Execution {
         execute(instruction.execution, instruction.debugInstruction);
       } else if (instruction is ReturnInstruction) {
         final Value usableValue =
-        giveUsableValue(instruction.value, instruction.debugInstruction);
+            giveUsableValue(instruction.value, instruction.debugInstruction);
         if (function is Fnc) {
           returnValue = usableValue;
           break;
@@ -590,14 +599,18 @@ class Execution {
       } else if (instruction is ErrorInstruction) {
         throwError("Error was thrown: " + instruction.value.toString(),
             instruction.debugInstruction);
-      } else if(instruction is WhileInstruction) {
+      } else if (instruction is WhileInstruction) {
         final nonExecutedBoolean = instruction.condition;
         try {
-          while ((giveUsableValue(nonExecutedBoolean, instruction.debugInstruction) as Bol).value) executeScope(instruction.scopeFunction);
+          while (
+              (giveUsableValue(nonExecutedBoolean, instruction.debugInstruction)
+                      as Bol)
+                  .value) executeScope(instruction.scopeFunction);
         } on TypeError {
-          throwError("bool in while statement wasnt a bool", instruction.debugInstruction);
-        } catch (error){
-          if(error is ReturnToFunctionException) {
+          throwError("bool in while statement wasnt a bool",
+              instruction.debugInstruction);
+        } catch (error) {
+          if (error is ReturnToFunctionException) {
             returnValue = error.returnValue;
             break;
           }
@@ -629,7 +642,6 @@ class Execution {
     }
   }
 }
-
 
 //endregion
 //region Instructions
@@ -702,11 +714,15 @@ class IfInstruction extends Instruction {
         this.scopeFunction.instructions.toString() +
         "\n}";
   }
-  IfInstruction.all(this.condition,this.scopeFunction,String debugInstruction) : super(debugInstruction);
+
+  IfInstruction.all(this.condition, this.scopeFunction, String debugInstruction)
+      : super(debugInstruction);
 }
 
 class WhileInstruction extends IfInstruction {
-  WhileInstruction(Value condition, ScopeFunction scopeFunction, String debugInstruction) : super.all(condition, scopeFunction, debugInstruction);
+  WhileInstruction(
+      Value condition, ScopeFunction scopeFunction, String debugInstruction)
+      : super.all(condition, scopeFunction, debugInstruction);
 }
 
 class IfElseInstruction extends IfInstruction {
@@ -922,41 +938,43 @@ class ConstantVariable extends Variable {
 
 // ignore: deprecated_extends_function
 class TSFunction {
-  final Value Function(List<Value> input) inputHandler;
+  final Value Function(List<Value> input,Execution execution) inputHandler;
   final int minParameterCount;
   final int maxParameterCount;
+
   TSFunction(this.inputHandler, this.maxParameterCount, this.minParameterCount);
+
   static final Map<String, TSFunction> tsFunctions = {
     //Number input, number output"add"
-    "add": TSFunction((input) {
+    "add": TSFunction((input,execution) {
       if (input[0] is NumberType && input[1] is NumberType) {
         return (input[0] as NumberType<num>) + (input[1] as NumberType<num>);
       }
       throw TSFunctionRunException(
           "Cannot use add if not both are number types (Int OR Kom)");
     }, 2, 2),
-    "subtract": TSFunction((input) {
+    "subtract": TSFunction((input,execution) {
       if (input[0] is NumberType && input[1] is NumberType) {
         return (input[0] as NumberType<num>) - (input[1] as NumberType<num>);
       }
       throw TSFunctionRunException(
           "Cannot use add if not both are number types (Int OR Kom)");
     }, 2, 2),
-    "multiply": TSFunction((input) {
+    "multiply": TSFunction((input,execution) {
       if (input[0] is NumberType && input[1] is NumberType) {
         return (input[0] as NumberType<num>) * (input[1] as NumberType<num>);
       }
       throw TSFunctionRunException(
           "Cannot use add if not both are number types (Int OR Kom)");
     }, 2, 2),
-    "divide": TSFunction((input) {
+    "divide": TSFunction((input,execution) {
       if (input[0] is NumberType && input[1] is NumberType) {
         return (input[0] as NumberType<num>) / (input[1] as NumberType<num>);
       }
       throw TSFunctionRunException(
           "Cannot use add if not both are number types (Int OR Kom)");
     }, 2, 2),
-    "min": TSFunction((input) {
+    "min": TSFunction((input,execution) {
       if (input[0] is NumberType && input[1] is NumberType) {
         return (input[0] as NumberType<num>)
             .customMin(input[1] as NumberType<num>);
@@ -964,7 +982,7 @@ class TSFunction {
       throw TSFunctionRunException(
           "Cannot use add if not both are number types (Int OR Kom)");
     }, 2, 2),
-    "max": TSFunction((input) {
+    "max": TSFunction((input,execution) {
       if (input[0] is NumberType && input[1] is NumberType) {
         return (input[0] as NumberType<num>)
             .customMax(input[1] as NumberType<num>);
@@ -973,14 +991,14 @@ class TSFunction {
           "Cannot use add if not both are number types (Int OR Kom)");
     }, 2, 2),
     // //Number input, boolean output
-    "smaller": TSFunction((input) {
+    "smaller": TSFunction((input,execution) {
       if (input[0] is NumberType && input[1] is NumberType) {
         return (input[0] as NumberType<num>) < (input[1] as NumberType<num>);
       }
       throw TSFunctionRunException(
           "Cannot use smaller if not both are number types (Int OR Kom)");
     }, 2, 2),
-    "bigger": TSFunction((input) {
+    "bigger": TSFunction((input,execution) {
       if (input[0] is NumberType && input[1] is NumberType) {
         return (input[0] as NumberType<num>) > (input[1] as NumberType<num>);
       }
@@ -988,21 +1006,21 @@ class TSFunction {
           "Cannot use add if not both are number types (Int OR Kom)");
     }, 2, 2),
     // //boolean input, boolean output
-    "and": TSFunction((input) {
+    "and": TSFunction((input,execution) {
       if (input[0] is Bol && input[1] is Bol) {
         return Bol((input[0] as Bol).value && (input[1] as Bol).value);
       }
       throw TSFunctionRunException(
           "Cannot use and if not both are from type Bol");
     }, 2, 2),
-    "or": TSFunction((input) {
+    "or": TSFunction((input,execution) {
       if (input[0] is Bol && input[1] is Bol) {
         return Bol((input[0] as Bol).value || (input[1] as Bol).value);
       }
       throw TSFunctionRunException(
           "Cannot use and if not both are from type Bol");
     }, 2, 2),
-    "either": TSFunction((input) {
+    "either": TSFunction((input,execution) {
       if (input[0] is Bol && input[1] is Bol) {
         return Bol(((input[0] as Bol).value || (input[1] as Bol).value) &&
             !((input[0] as Bol).value && (input[1] as Bol).value));
@@ -1010,7 +1028,7 @@ class TSFunction {
       throw TSFunctionRunException(
           "Cannot use either if not both are from type Bol");
     }, 2, 2),
-    "not": TSFunction((input) {
+    "not": TSFunction((input,execution) {
       if (input[0] is Bol) {
         return Bol(!(input[0] as Bol).value);
       }
@@ -1018,8 +1036,7 @@ class TSFunction {
           "Cannot use not if the argument is not from type Bol");
     }, 1, 1),
     // //all input, boolean output
-
-    "equals": TSFunction((input) {
+    "equals": TSFunction((input,execution) {
       if (input[0].runtimeType == input[1].runtimeType) {
         if (input[0] is DirectValue) {
           return Bol((input[0] as DirectValue).value ==
@@ -1030,15 +1047,15 @@ class TSFunction {
       }
       return Bol(false);
     }, 2, 2),
-    "type": TSFunction((input) {
+    "type": TSFunction((input,execution) {
       return Bol(input[0].runtimeType == input[1].runtimeType);
     }, 2, 2),
-    "isAbsent": TSFunction((input) {
+    "isAbsent": TSFunction((input,execution) {
       return Bol(input[0] is Abs);
     }, 1, 1),
     // "ea",
     // //io
-    "output": TSFunction((input) {
+    "output": TSFunction((input,execution) {
       String printValue = "";
       for (Value parameter in input) {
         printValue += parameter.toString() + ", ";
@@ -1047,7 +1064,7 @@ class TSFunction {
       print(printValue);
       return Abs();
     }, 1, 99999),
-    "input": TSFunction((input) {
+    "input": TSFunction((input,execution) {
       if (input.isEmpty) {
         io.stdout.write(">");
       } else {
@@ -1055,19 +1072,20 @@ class TSFunction {
       }
       return Txt(io.stdin.readLineSync());
     }, 0, 1),
-    "formattedinput": TSFunction((input){
+    "formatted_input": TSFunction((input,execution) {
       if (input.isEmpty) {
         io.stdout.write(">");
       } else {
         io.stdout.write(input);
       }
       try {
-        return Parsing.giveValue(io.stdin.readLineSync(),0);
+        final val = Parsing.giveValue(io.stdin.readLineSync(), 0);
+        if(val is Fnc) val.parent = execution;
+        return val;
       } catch (error) {
-        throw TSFunctionRunException(
-            "invalid Value");
+        throw TSFunctionRunException("invalid Value");
       }
-    },0,1)
+    }, 0, 1)
     // "formattedInput",
   };
 }

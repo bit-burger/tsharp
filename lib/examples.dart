@@ -163,9 +163,15 @@ const example20 = '''
 let a = equals(2,input(<hihi>))
 ''';
 
+const example21 = '''
+var hi
+let a = formatted_input()
+a()
+''';
+
 
 void main() {
   Main(
-    example1
+    example21
   );
 }

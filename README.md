@@ -116,9 +116,11 @@ remove(str,index)         -> Txt
 removelast()              -> Txt
 replace(str,subs,replace) -> Txt
 //I/O
-output(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z)
+output(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z) //give as many arguments as you want to
 input(<ask user something>)
 input() //can also be optional
+formatted_input(<ask user something else>)
+formatted_input( //message is also optional
 ```
 
 #### ea(a,b)
