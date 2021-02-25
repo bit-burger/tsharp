@@ -4,5 +4,8 @@ version: 1.0.0
 author: Tony Borchert
 homepage:
 
+dependencies:
+  meta: any
+
 environment:
   sdk: ">=2.7.0 <3.0.0"

@@ -4,7 +4,13 @@ import 'dart:io' as io;
 import 'dart:math';
 
 
-
+class TSConfiguration {
+  final List<TSFunction> functions;
+  final void Function(String) outputFunction;
+  final Future<String> Function(String) inputFunction;
+  final bool includeStandardTSFunctions;
+  TSConfiguration(this.outputFunction,this.inputFunction,{this.functions = const [],this.includeStandardTSFunctions = true,});
+}
 
 class ParseException extends TSException {
   int whichLine;
@@ -245,7 +251,12 @@ class Parsing {
 
   static Value giveValue(String string, int line) {
     string = string.trim();
-    if (string == "absent") {
+    if(string[0]=="@") {
+      string = string.substring(1);
+      final type = Value.types[string];
+      if(type!=null) return Typ(type);
+      throw ParseException(line, "not a type");
+    } else if (string == "absent") {
       return Abs();
     } else if (string == "true" || string == "false") {
       return Bol(string == "true");
@@ -770,7 +781,20 @@ abstract class Value {
     }
     return true;
   }
+
+  static Map<String,Type> types = {
+    "Int" : Type.Int,
+    "Kom" : Type.Kom,
+    "Fnc" : Type.Fnc,
+    "Txt" : Type.Txt,
+    "Typ" : Type.Typ,
+    "Abs" : Type.Abs,
+  };
 }
+
+enum Type {Int,Kom,Fnc,Txt,Typ,Abs}
+
+
 
 class VariableGet extends Value {
   final String variable;
@@ -801,8 +825,6 @@ abstract class DirectValue<V> extends Value {
     return value.toString();
   }
 }
-
-//Execution muss andere Execution callen, und sich selber als eltern geben oder function?
 
 abstract class NumberType<Number extends num> extends DirectValue<Number> {
   NumberType(Number value) : super(value);
@@ -881,6 +903,10 @@ class Bol extends DirectValue<bool> {
   Bol(bool value) : super(value);
 }
 
+class Typ extends DirectValue<Type> {
+  Typ(Type value): super(value);
+}
+
 class Abs extends Value {
   @override
   String toString() {
@@ -888,7 +914,6 @@ class Abs extends Value {
   }
 }
 
-// ignore: deprecated_function_class_declaration
 abstract class BaseFunction extends Value {
   final List<Instruction> instructions;
   BaseFunction(this.instructions);
@@ -924,7 +949,7 @@ class Variable {
   Variable(this.value);
   @override
   String toString() {
-    return value.toString();
+    return "(Var)" + value.toString();
   }
 }
 
@@ -932,7 +957,7 @@ class ConstantVariable extends Variable {
   ConstantVariable(Value value) : super(value);
   @override
   String toString() {
-    return value.toString() + "(Let)";
+    return "(Let) " + value.toString();
   }
 }
 
@@ -972,15 +997,23 @@ class TSFunction {
         return (input[0] as NumberType<num>) / (input[1] as NumberType<num>);
       }
       throw TSFunctionRunException(
-          "Cannot use add if not both are number types (Int OR Kom)");
+          "Cannot divide if not both are number types (Int OR Kom)");
     }, 2, 2),
+    "round_divide": TSFunction((input,execution) {
+      if (input[0] is NumberType && input[1] is NumberType) {
+        return Int((input[0] as NumberType<num>).value ~/ (input[1] as NumberType<num>).value);
+      }
+      throw TSFunctionRunException(
+          "Cannot use round divide if not both are number types (Int OR Kom)");
+    }, 2, 2),
+    "pow": null, //must be implemented
     "min": TSFunction((input,execution) {
       if (input[0] is NumberType && input[1] is NumberType) {
         return (input[0] as NumberType<num>)
             .customMin(input[1] as NumberType<num>);
       }
       throw TSFunctionRunException(
-          "Cannot use add if not both are number types (Int OR Kom)");
+          "Cannot use min if not both are number types (Int OR Kom)");
     }, 2, 2),
     "max": TSFunction((input,execution) {
       if (input[0] is NumberType && input[1] is NumberType) {
@@ -988,7 +1021,7 @@ class TSFunction {
             .customMax(input[1] as NumberType<num>);
       }
       throw TSFunctionRunException(
-          "Cannot use add if not both are number types (Int OR Kom)");
+          "Cannot use max if not both are number types (Int OR Kom)");
     }, 2, 2),
     // //Number input, boolean output
     "smaller": TSFunction((input,execution) {
@@ -1003,7 +1036,7 @@ class TSFunction {
         return (input[0] as NumberType<num>) > (input[1] as NumberType<num>);
       }
       throw TSFunctionRunException(
-          "Cannot use add if not both are number types (Int OR Kom)");
+          "Cannot use bigger if not both are number types (Int OR Kom)");
     }, 2, 2),
     // //boolean input, boolean output
     "and": TSFunction((input,execution) {
@@ -1018,7 +1051,7 @@ class TSFunction {
         return Bol((input[0] as Bol).value || (input[1] as Bol).value);
       }
       throw TSFunctionRunException(
-          "Cannot use and if not both are from type Bol");
+          "Cannot use or if not both are from type Bol");
     }, 2, 2),
     "either": TSFunction((input,execution) {
       if (input[0] is Bol && input[1] is Bol) {
@@ -1047,8 +1080,13 @@ class TSFunction {
       }
       return Bol(false);
     }, 2, 2),
-    "type": TSFunction((input,execution) {
+    "isSameType": TSFunction((input,execution) {
       return Bol(input[0].runtimeType == input[1].runtimeType);
+    }, 2, 2),
+    "isType": TSFunction((input,execution) {
+      if(input[1] is Typ)
+        return Bol(Value.types[input[0].runtimeType.toString()] == (input[1] as Typ).value);
+      throw TSFunctionRunException("second parameter must be from Type \"Typ\"");
     }, 2, 2),
     "isAbsent": TSFunction((input,execution) {
       return Bol(input[0] is Abs);
@@ -1072,7 +1110,7 @@ class TSFunction {
       }
       return Txt(io.stdin.readLineSync());
     }, 0, 1),
-    "formatted_input": TSFunction((input,execution) {
+    "formattedInput": TSFunction((input,execution) {
       if (input.isEmpty) {
         io.stdout.write(">");
       } else {
@@ -1085,7 +1123,8 @@ class TSFunction {
       } catch (error) {
         throw TSFunctionRunException("invalid Value");
       }
-    }, 0, 1)
+    }, 0, 1),
+
     // "formattedInput",
   };
 }
