@@ -587,7 +587,8 @@ class Execution {
           }
         } else if (instruction is ModifierInstruction) {
           if (variableOfString(
-                  instruction.variable, instruction.debugInstruction)
+                  instruction.variable, instruction.debugInstruction) //warum wird nicht erst die variable gesucht gefunden, ausgewertet und schliesslich benutzt,
+          // anstatt sie zweimal zu suchen (sie wird bei variableOfString und changeValueOfVariable jedes mal nochmal neu gesucht)
               is! ConstantVariable) {
             changeValueOfVariable(
                 instruction.variable, finalValue, instruction.debugInstruction);

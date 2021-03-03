@@ -172,9 +172,17 @@ class ErrorInstruction extends Instruction {
 
 }
 
+
 class Assertion extends Instruction {
   final Value bool;
   final DirectValue message;
 
   Assertion(this.bool,this.message,int debugLine, int debugCharacter) : super(debugLine, debugCharacter);
+}
+
+
+class SingleFunctionCall extends Instruction {
+  final Value call; //muss vom typ "FunctionCall" sein
+
+  SingleFunctionCall(this.call,int debugLine, int debugCharacter) : super(debugLine, debugCharacter);
 }
