@@ -172,11 +172,3 @@ var hi
 let a = formatted_input()
 a()
 ''';
-
-
-
-void main() {
-  List klammern = [];
-  parse(smallExample);
-  // Main(smallExample);
-}

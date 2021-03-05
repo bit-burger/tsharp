@@ -40,7 +40,7 @@ to_type(@any,@typ) -> @any =>
 arr(@rng)/(@†yp)/(@any...) -> @arr ; (pre/operator)
 bol(@str) -> @bol
 int(@str)/(@kom) -> @int
-kom(@str)/(@int) -> @kom
+kom(@str)/(@int)/(@int,@int) -> @kom .
 num(@str) -> @num
 rng(@int,@int) -> @rng ...
 str(@pri) -> @str
@@ -113,7 +113,9 @@ split(@str,@str) -> @arr
 lowercase(@str) -> @str
 uppercase(@str) -> @str
 
-contains(@str) -> @bol
+starts_with(@str,@str) -> @bol
+ends_with(@str,@str) -> @bol
+contains(@str,@str) -> @bol
 search(@str,@str) -> @arr
 
 #### @arr

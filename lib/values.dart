@@ -283,9 +283,11 @@ class ArrConstructor extends IndirectValue {
 class Execution {}
 // ignore: deprecated_extends_function
 class DartFunction extends DirectValue<Future<DirectValue> Function(List<DirectValue>,Execution)> {
+
   final int minParameters;
   final int maxParameters;
 
   DartFunction(this.minParameters,this.maxParameters,Future<DirectValue> Function(List<DirectValue> arguments, Execution ) value) : super(value, null, null); //null für keine Begrenzung
 
 }
+

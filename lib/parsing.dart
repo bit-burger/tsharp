@@ -1,4 +1,5 @@
 import 'package:meta/meta.dart';
+import 'package:tsharp/tsharp.dart';
 
 import 'instructions.dart';
 import 'values.dart';
@@ -46,17 +47,63 @@ class TS {
 //var i = 0 sind zwei verschiedene instructions, Declration und assignment
 //operator: :%"!?/&|*+-^°=.`´
 
+bool characterSafe(String string, String tester) {
+  for(String char in string.split("")) {
+    if(!tester.contains(char))
+      return false;
+  }
+  return true;
+}
+
+Value parseValue(String value,[int line = 0, int character = 0]) {
+  character -= 1;
+  if(value=="true") {
+    return Bol(true,line,character);
+  }
+  if(value=="false") {
+    return Bol(false,line,character);
+  }
+  if(value=="absent") {
+    return Abs(line,character);
+  }
+  if (value[0] == "\"" && value[value.length - 1] == "\"") {
+    return Str(value.substring(1, value.length - 1));
+  }
+  final intParse = int.tryParse(value);
+  if(intParse!=null)
+    return Int(intParse,line,character);
+  final komParse = double.tryParse(value);
+  if(komParse!=null)
+    return Kom(komParse,line,character);
+  final List<String> split = value.split("");
+  if(value.length==1) {
+    if(characterSafe(value, allowed_characters_for_variables))
+      return VariableGet
+  } else {
+    if(split[0]=="@") {
+
+    } else if(split[0]=="#") {
+
+    }
+  }
+
+
+}
+
 
 // ' ist kommentar
-List<Instruction> parse(String s, [List<String> parameters]) {
+List<Instruction> parse(String s,[int line = 0, int character = 0]) {
   var rawInstruction = <String>[""];
   final instructions = <Instruction>[];
   final klammern = <Klammer>[];
-  var line = 0;
-  var character = -1;
+  bool wasBackslash = false;
+  character -= 1;
+  var globalCharacter = -1;
+  final List<String> split = (s+"\n").split("");
   try {
-    s.split("").forEach((char) {
+    split.forEach((char) {
       character++;
+      globalCharacter++;
       if (char == " ") {
         if (klammern.isNotEmpty) {
           rawInstruction.last += char;
@@ -75,18 +122,22 @@ List<Instruction> parse(String s, [List<String> parameters]) {
           rawInstruction.last += char;
         }
         return;
-      } else if (char == "{" || char == "(" || char == "<" || char == "[") {
-        if (klammern.isNotEmpty && klammern.last == "<") return;
+      } else if(char=="\"") {
+        if(!wasBackslash) {
+          if(klammern.isEmpty)
+            klammern.add(Klammer(char,character,line));
+          else if(klammern.last.klammer=="\"")
+            klammern.removeLast();
+        }
+      } else if (char == "{" || char == "(" || char == "[") {
+        if(klammern.isEmpty||klammern.last.klammer!="\"")
         klammern.add(Klammer(char, character, line));
-      } else if (char == "}" || char == ")" || char == "]" || char == ">") {
-        if (klammern.isEmpty)
+      } else if (char == "}" || char == ")" || char == "]") {
+        if(klammern.isNotEmpty&&klammern.last.klammer=="\"");
+        else if (klammern.isEmpty)
           throw ParseException(line, character,
               "bracket \"$char\" on line $line, is unnecesary");
-        else if (klammern.last.klammer == "<") {
-          if (char == ">") {
-            klammern.removeLast();
-          }
-        } else if ((klammern.last.klammer == "{" && char == "}") ||
+        else if ((klammern.last.klammer == "{" && char == "}") ||
             (klammern.last.klammer == "(" && char == ")") ||
             (klammern.last.klammer == "[" && char == "]"))
           klammern.removeLast();
@@ -112,15 +163,34 @@ List<Instruction> parse(String s, [List<String> parameters]) {
           );
         }
       }
-      rawInstruction.last += char;
+      if(wasBackslash) {
+        wasBackslash = false;
+        print(backslashedCharacters[char]);
+        rawInstruction.last += backslashedCharacters[char];
+      } else if(char=="\\"){
+        if(klammern.isEmpty||klammern.last.klammer!="\"")
+          throw ParseException(line, character, "Cannot backslash characters outside of a string");
+        final nextCharacter = split[globalCharacter+1];
+        if(backslashedCharacters[nextCharacter]==null) {
+          if(nextCharacter=="\n")
+            throw ParseException(line,character + 1,"Cannot backslash a linebreak");
+          else if(nextCharacter==" ")
+            throw ParseException(line,character + 1,"Cannot backslash a space");
+          else
+            throw ParseException(line,character + 1,"Cannot backslash the character \"${split[globalCharacter + 1]}\"");
+        }
+        wasBackslash = true;
+      } else {
+        rawInstruction.last += char;
+      }
     });
     if (klammern.isNotEmpty) {
-      if (klammern.last.klammer == "<")
+      if (klammern.last.klammer == "\"")
         throw ParseException(klammern.last.line, klammern.last.character,
-            "String has to be closed");
+            "A string needs to be closed");
       else
         throw ParseException(klammern.last.line, klammern.last.character,
-            "Bracket \"${klammern.last.klammer}\" is unnecessary");
+            "Bracket \"${klammern.last.klammer}\" is unnecessary and was not closed");
     }
   } on ParseException catch (error) {
     if (error is CustomParseException)
@@ -129,7 +199,7 @@ List<Instruction> parse(String s, [List<String> parameters]) {
       String line = s.split("\n")[error.debugLine];
       print("[NAME]:${error.debugLine}:${error.debugCharacter}:${error.message}\n" +
           TS.generateErrorShow(
-            line + " (${klammern.last.line}:${klammern.last.character})",
+            line,
             error.debugCharacter,
           ));
     }
@@ -144,11 +214,17 @@ const s = '''
 ''';
 
 const smallExample = '''
-var a
+var a = " ölajd aölskdjfj(({)\\\\ aösdlfkj\\
+
+"
 let func = @Int
 a = isType(<>,@Int
 
 
 
-){{{{{{
-''';
+)''';
+
+void main() {
+  parse(smallExample);
+}
+

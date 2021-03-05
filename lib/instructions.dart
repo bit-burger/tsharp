@@ -17,7 +17,8 @@ abstract class Declaration extends Instruction {
   Declaration(int debugLine, int debugCharacter) : super(debugLine, debugCharacter);
 }
 
-
+//eine Declaration darf keinen Wert enthalten, var a = 3 sind zwei instructions: var a; a = 3;
+//eine Multiple Declaration muss den Wert direkt schon haben, nähmlich ein Array
 
 
 abstract class MultipleDeclaration extends Declaration {
