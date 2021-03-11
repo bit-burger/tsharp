@@ -18,7 +18,7 @@ abstract class FutureValue extends DebugObject {
 
 //double, int, string, bool,absent
 class PrimitiveValue extends FutureValue {
-  final bool value;
+  final dynamic value;
 
   PrimitiveValue(this.value, int debugLine, int debugCharacter)
       : super(debugLine, debugCharacter);
@@ -37,6 +37,37 @@ class FutureFunction extends FutureValue {
   FutureFunction(this.instructions, int debugLine, int debugCharacter)
       : super(debugLine, debugCharacter);
 }
+
+@immutable
+abstract class Reference extends FutureValue {
+  final String invocation;
+
+  Reference(this.invocation,int debugLine, int debugCharacter) : super(debugLine, debugCharacter);
+}
+
+class RecordReference extends Reference { RecordReference(String invocation, int debugLine, int debugCharacter) : super(invocation, debugLine, debugCharacter); }
+
+class VariableReference extends Reference { VariableReference(String invocation, int debugLine, int debugCharacter) : super(invocation, debugLine, debugCharacter); }
+
+class TypeReference extends Reference { TypeReference(String invocation, int debugLine, int debugCharacter) : super(invocation, debugLine, debugCharacter); }
+
+@immutable
+abstract class Call<Function> extends FutureValue {
+  final Function function;
+
+  final List<FutureValue> parameters; //muss sowieso irgendwann in ein array konvertiert werden, oder auch nicht lol
+
+  Call(this.function, this.parameters, int debugLine, int debugCharacter) : super(debugLine, debugCharacter);
+}
+
+class FunctionCall extends Call<FutureValue> { FunctionCall(FutureValue function, List<FutureValue> parameters, int debugLine, int debugCharacter) : super(function, parameters, debugLine, debugCharacter); }
+
+class OperatorCall extends Call<String> { OperatorCall(String function, List<FutureValue> parameters, int debugLine, int debugCharacter) : super(function, parameters, debugLine, debugCharacter); }
+
+class PrefixCall extends OperatorCall { PrefixCall(String function, List<FutureValue> parameters, int debugLine, int debugCharacter) : super(function, parameters, debugLine, debugCharacter);}
+
+class PostfixCall extends OperatorCall { PostfixCall(String function, List<FutureValue> parameters, int debugLine, int debugCharacter) : super(function, parameters, debugLine, debugCharacter) ;}
+
 
 //Values: (Execution values not parse values)
 

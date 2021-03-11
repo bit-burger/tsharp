@@ -5,7 +5,7 @@ const String allowed_characters_for_variables =
 const String allowed_characters_for_operators = ".:;*+-~/#=!?%&^°`´<>";
 const List<String> keywords = <String>[
   "var", "let", "params", "definition", "constant", "record",
-  "operator", "prefix", "postfix",
+  "operator", "prefix", "postfix", "event", "delete"
   "assignment", "call", "delete",
   "return", "stop", "error",
   "if", "elif", "else", "assert",
@@ -13,11 +13,31 @@ const List<String> keywords = <String>[
   "use", "import",
   //Optional: ["params","assignment","call"]
 ];
+const List<String> systemValues = [
+  "true", "false", "absent", "function", "_",
+];
 const Map<String,String> backslashedCharacters = {
   "n" : "\n",
   "\\" : "\\",
   "\"" : "\"",
 };
+
+const List<String> forbiddenOperators = [
+  "=",
+];
+
+const operatorReihenFolge = [
+  ["&&"],
+  ["||","|"],
+  ["??,?"],
+  ["<",">","<=",">=","==","===","===="],
+  ["%","^"],
+  ["+","-"],
+  ["*","/"],
+
+  [":","::",":?",":??"],
+  [";","...","."],
+];
 
 @immutable
 abstract class DebugObject {

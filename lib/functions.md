@@ -29,10 +29,12 @@ either(@bol,@bol) -> @bol |
 not(@bol) -> @bol ! (pre)
 
 is_type(@any,@typ) -> @bol ===
+is_not_type(@any,@typ) -> @bol !==
 is_types(@arr,@arr) -> @bol ====
+is_not_types(@arr,@arr) -> @bol !===
 is_same_type(@typ,@typ) -> @bol 
 
-switch(@bol,@arr) -> @any
+switch(@bol,@arr) -> @any ?
 alternative(@any,@any) -> @any ??
 option(@any,@arr,@arr) 
 
@@ -50,9 +52,15 @@ typ(@typ...) -> @typ
 dispatch(@int,@fnc) -> @bol
 wait(@int) -> @abs
 
+timer_start(@int,@fnc) -> @str
+timer_stop(@str) -> @bol
+
+repeat_start(@int,@fnc) -> @str
+repeat_start(@str) -> @bol
+repeat_change(@str,@fnc) -> @bol
+
 event_spawn(@str,@fnc,@str?) -> @bol (letzter string ist identifier)
 event_kill(@str) -> @bol (killt process mit dem identifier)
-event_get(@str) -> @fnc (fnc von dem identifier)
 event_list(@str) -> @arr (alle funktionen Identifier von einem process)
 
 ### @typ
@@ -77,7 +85,8 @@ arr(@rng) -> @arr
 single_access(@fnc,@any?) -> @any : (post/operator)
 multiple_access(@fnc,@arr) -> @any ::
 safe_access(@fnc,@arr) -> @any :?
-sandboxed_call() -> @any :??
+sandboxed_call(@fnc,@arr) -> @any :??
+no_arg_call(@fnc,@arr)/(@arr,@fnc) -> @any .
 
 ### @arr/@str -> @s; @any/@str -> @item
 
@@ -94,6 +103,11 @@ count(@s) -> @int
 indexed(@s) -> @arr
 enumerated(@s) -> @arr
 
+map(@s,@fnc) -> @s
+forEach(@s,@fnc) -> @abs
+filter(@s,@fnc) -> @s
+sort(@s,@fnc) -> @s
+
 shift(@s,@int?) -> @s
 unshift(@s,@item...) -> @s
 pop(@s,@int?) -> @s
@@ -105,10 +119,17 @@ replace(@s,@rng,@s) -> @s
 sub(@s,@int,@int)/(@s,@rng) -> @s
 cut(@s,@int,@int)/(@s,@rng) -> @s
 
+reverse(@s) -> @s
+
 #### @str
 
-trim(@str,@bol?) -> @str
-split(@str,@str) -> @arr
+trimLeft(@str) -> @str
+trimRight(@str) -> @str
+trim(@str) -> @str
+sub(@str,@int,@int?) -> @str
+subByLength(@str,@int,@int) -> @str
+
+split(@str,@str)/(@str,@fnc?) -> @arr
 
 lowercase(@str) -> @str
 uppercase(@str) -> @str
@@ -116,13 +137,15 @@ uppercase(@str) -> @str
 starts_with(@str,@str) -> @bol
 ends_with(@str,@str) -> @bol
 contains(@str,@str) -> @bol
-search(@str,@str) -> @arr
+search(@str,@str) -> @arr (mit verschiedenen indexen)
+
+removeFromFront(@str,@int) -> @str
+removeFromBack(@str,@int) -> @str
 
 #### @arr
 
 fill(@arr,@int?,@int?) -> @arr
 defill(@arr) -> @arr
-sort(@arr,@fnc?) -> @arr
 
 ### @num
 
@@ -136,6 +159,14 @@ bigger(@num,@num) -> @num >
 
 min(@num,@num) -> @bol
 max(@num,@num) -> @bol
+
+### in- and output
+
+print(@any...)
+debug_print(@any...)
+
+output(@str) -> @abs >>
+input(@str?) -> @abs
 
 ### math
 

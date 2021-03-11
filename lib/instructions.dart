@@ -1,5 +1,6 @@
 import 'package:meta/meta.dart';
-import 'values.dart';
+import 'package:tsharp/constants.dart';
+import 'newvalue.dart';
 class Closure {} class Fnc {}
 
 @immutable
@@ -22,23 +23,45 @@ abstract class Declaration extends Instruction {
 
 
 abstract class MultipleDeclaration extends Declaration {
-  final Map<String,Value> variables; //Variablen und ihre default Werte
+  final List<MultipleVariableOrConstantDeclarationVariable> variables; //Variablen und ihre default Werte in einer reihe korresponierend zu dem array
   MultipleDeclaration(this.variables,int debugLine, int debugCharacter) : super(debugLine, debugCharacter);
 
 }
 
-class MultipleVariableDeclaration extends MultipleDeclaration {
-  final Value value;
-  MultipleVariableDeclaration(this.value,Map<String, Value> variables, int debugLine, int debugCharacter) : super(variables, debugLine, debugCharacter);
+@immutable
+class MultipleVariableOrConstantDeclarationVariable extends DebugObject {
+  final String name; //null wenn man dem parameter keinen namen gibt, z.B.: [a,,c]
+  final FutureValue defaultValue; //wenn der im array korrespondierene Wert = absent ist,
+  //in dem params befehl würde es auch reichen wenn das array zu kurz ist
+
+  MultipleVariableOrConstantDeclarationVariable(this.name, this.defaultValue, int line, int character) : super(line, character);
 }
 
-class MultipleConstantDeclaration extends MultipleVariableDeclaration {
-  MultipleConstantDeclaration(Value value, Map<String, Value> variables, int debugLine, int debugCharacter) : super(value, variables, debugLine, debugCharacter);
+class MultipleVariableOrConstantDeclarationRestAsArrayVariable extends MultipleVariableOrConstantDeclarationVariable {
+  MultipleVariableOrConstantDeclarationRestAsArrayVariable(String name, FutureValue defaultValue,int line, int character) : super(name, defaultValue, line, character);
+  //REST: var [a, b = 3, c... = [2,2]] = [2,3,4,5,6] (c nimmt alle werte ab 4)
+}
+
+abstract class ValueHoldingMultipleDeclaration extends MultipleDeclaration {
+  final FutureValue value;
+  ValueHoldingMultipleDeclaration(this.value,List<MultipleVariableOrConstantDeclarationVariable> variables, int debugLine, int debugCharacter) : super(variables, debugLine, debugCharacter);
 
 }
+
+class MultipleVariableDeclaration extends ValueHoldingMultipleDeclaration {
+  MultipleVariableDeclaration(FutureValue value, List<MultipleVariableOrConstantDeclarationVariable> variables, int debugLine, int debugCharacter) : super(value, variables, debugLine, debugCharacter);
+}
+
+class MultipleConstantDeclaration extends ValueHoldingMultipleDeclaration {
+  MultipleConstantDeclaration(FutureValue value, List<MultipleVariableOrConstantDeclarationVariable> variables,  int debugLine, int debugCharacter) : super(value, variables, debugLine, debugCharacter);
+
+}
+
+//params soll safe sein also: [a,b,c] = [0,1] => [a,b,c] = [0,1,absent]
+// das ist dann auch sehr einfach mit den defaults, die dann ja absent ersetzen
 
 class ParameterDeclaration extends MultipleDeclaration {
-  ParameterDeclaration(Map<String, Value> variables, int debugLine, int debugCharacter) : super(variables, debugLine, debugCharacter);
+  ParameterDeclaration(List<MultipleVariableOrConstantDeclarationVariable> variables, int debugLine, int debugCharacter) : super(variables, debugLine, debugCharacter);
 
 }
 
@@ -46,51 +69,51 @@ class ParameterDeclaration extends MultipleDeclaration {
 
 
 
-abstract class SingleDeclaration<Val extends Value> extends Declaration {
+abstract class SingleDeclaration<Val extends FutureValue> extends Declaration {
   final String variable;
-  final Value value;
+  final FutureValue value;
   SingleDeclaration(this.variable,this.value,int debugLine, int debugCharacter) : super(debugLine, debugCharacter);
 }
 
 abstract class SingleVariableDeclaration extends SingleDeclaration {
-  SingleVariableDeclaration(String variable, Value value, int debugLine, int debugCharacter) : super(variable, value, debugLine, debugCharacter);
+  SingleVariableDeclaration(String variable, FutureValue value, int debugLine, int debugCharacter) : super(variable, value, debugLine, debugCharacter);
 
 }
 
 abstract class SingleConstantDeclaration extends SingleVariableDeclaration{
-  SingleConstantDeclaration(String variable, Value value, int debugLine, int debugCharacter) : super(variable, value, debugLine, debugCharacter);
+  SingleConstantDeclaration(String variable, FutureValue value, int debugLine, int debugCharacter) : super(variable, value, debugLine, debugCharacter);
 
 }
 
 
 //definition num = @int + @kom
 class TypeDefinition extends SingleDeclaration {
-  TypeDefinition(String variable, Value value, int debugLine, int debugCharacter) : super(variable, value, debugLine, debugCharacter);
+  TypeDefinition(String variable, FutureValue value, int debugLine, int debugCharacter) : super(variable, value, debugLine, debugCharacter);
 
 }
 
 class RecordDefinition extends SingleDeclaration {
-  RecordDefinition(String variable, Value value, int debugLine, int debugCharacter) : super(variable, value, debugLine, debugCharacter);
+  RecordDefinition(String variable, FutureValue value, int debugLine, int debugCharacter) : super(variable, value, debugLine, debugCharacter);
 
 }
 
-class ConstantDefinition extends SingleDeclaration<DirectValue> {
-  ConstantDefinition(String variable, DirectValue value, int debugLine, int debugCharacter) : super(variable, value, debugLine, debugCharacter);
+class ConstantDefinition extends SingleDeclaration {
+  ConstantDefinition(String variable, dynamic value, int debugLine, int debugCharacter) : super(variable, value, debugLine, debugCharacter);
 
 }
 
 class OperatorDeclaration extends SingleDeclaration {
-  OperatorDeclaration(String variable, Value value, int debugLine, int debugCharacter) : super(variable, value, debugLine, debugCharacter);
+  OperatorDeclaration(String variable, FutureValue value, int debugLine, int debugCharacter) : super(variable, value, debugLine, debugCharacter);
 
 }
 
 class Prefix extends OperatorDeclaration {
-  Prefix(String operator, Value value, int debugLine, int debugCharacter) : super(operator, value, debugLine, debugCharacter);
+  Prefix(String operator, FutureValue value, int debugLine, int debugCharacter) : super(operator, value, debugLine, debugCharacter);
 
 }
 
 class Postfix extends OperatorDeclaration {
-  Postfix(String operator, Value value, int debugLine, int debugCharacter) : super(operator, value, debugLine, debugCharacter);
+  Postfix(String operator, FutureValue value, int debugLine, int debugCharacter) : super(operator, value, debugLine, debugCharacter);
 
 }
 
@@ -98,7 +121,7 @@ class Postfix extends OperatorDeclaration {
 
 class VariableAssignment extends Instruction {
   final String variable;
-  final Value value;
+  final FutureValue value;
 
   VariableAssignment(this.variable, this.value, int debugLine, int debugCharacter) : super(debugLine, debugCharacter);
 
@@ -126,7 +149,7 @@ class Import extends Usage {
 
 
 abstract class Conditional extends Instruction {
-  final Value bool;
+  final FutureValue bool;
 
   Conditional(this.bool,int debugLine, int debugCharacter) : super(debugLine, debugCharacter);
 }
@@ -134,32 +157,32 @@ abstract class Conditional extends Instruction {
 class If extends Conditional {
   final Closure body;
 
-  If(this.body,Value bool, int debugLine, int debugCharacter) : super(bool, debugLine, debugCharacter);
+  If(this.body,FutureValue bool, int debugLine, int debugCharacter) : super(bool, debugLine, debugCharacter);
 }
 
 class IfElse extends If {
   final Closure alternative;
 
-  IfElse(this.alternative,Closure body, Value bool, int debugLine, int debugCharacter) : super(body, bool, debugLine, debugCharacter);
+  IfElse(this.alternative,Closure body, FutureValue bool, int debugLine, int debugCharacter) : super(body, bool, debugLine, debugCharacter);
 
 }
 
 class While extends Conditional {
   final Fnc body;
 
-  While(this.body,Value bool, int debugLine, int debugCharacter) : super(bool, debugLine, debugCharacter);
+  While(this.body,FutureValue bool, int debugLine, int debugCharacter) : super(bool, debugLine, debugCharacter);
 }
 
 class For extends Instruction {
   final Fnc body;
-  final Value iterator;
+  final FutureValue iterator;
 
   For(this.body,this.iterator,int debugLine, int debugCharacter) : super(debugLine, debugCharacter);
 }
 
 enum Returns { RETURN, STOP}
 class TerminationInstruction extends Instruction {
-  final Value returnValue;
+  final FutureValue returnValue;
   final List<Returns> returns; //für sachen wie return return, ein RETURN repräsentiert "return", STOP repräsentiert "stop", im program wird ein fehler dann geworfen
   // und die verschiedenen funktionen müssen versuchen ihn abzubaueh, if versucht ihn dann natürlich nicht abzubauen
   TerminationInstruction(this.returnValue,this.returns,int debugLine, int debugCharacter) : super(debugLine, debugCharacter);
@@ -167,23 +190,22 @@ class TerminationInstruction extends Instruction {
 }
 
 class ErrorInstruction extends Instruction {
-  final DirectValue message;
+  final dynamic message;
 
   ErrorInstruction(this.message,int debugLine, int debugCharacter) : super(debugLine, debugCharacter);
-
 }
 
 
 class Assertion extends Instruction {
-  final Value bool;
-  final DirectValue message;
+  final FutureValue bool;
+  final dynamic message;
 
   Assertion(this.bool,this.message,int debugLine, int debugCharacter) : super(debugLine, debugCharacter);
 }
 
 
 class SingleFunctionCall extends Instruction {
-  final Value call; //muss vom typ "FunctionCall" sein
+  final Call call; //muss vom typ "Call" sein also entweder: FunctionCall, PrefixCall, PostfixCall, und OperatorCall
 
   SingleFunctionCall(this.call,int debugLine, int debugCharacter) : super(debugLine, debugCharacter);
 }
