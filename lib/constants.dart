@@ -14,29 +14,38 @@ const List<String> keywords = <String>[
   //Optional: ["params","assignment","call"]
 ];
 const List<String> systemValues = [
-  "true", "false", "absent", "function", "_",
+  "true", "false", "absent", "function", "_", "infinity", "min", "max"
 ];
-const Map<String,String> backslashedCharacters = {
+const Map<String,String> backslashable_characters = {
   "n" : "\n",
   "\\" : "\\",
   "\"" : "\"",
 };
 
+const String backslashable_characters_as_string = "\\n, \\\\, \\\"";
+
 const List<String> forbiddenOperators = [
   "=",
 ];
 
-const operatorReihenFolge = [
-  ["&&"],
-  ["||","|"],
-  ["??,?"],
-  ["<",">","<=",">=","==","===","===="],
-  ["%","^"],
-  ["+","-"],
-  ["*","/"],
-
-  [":","::",":?",":??"],
+const operator_upper_preference = [
   [";","...","."],
+  [":","::",":?",":??"],
+];
+
+const operator_lower_preference = [
+  ["*","/"],
+  ["+","-"],
+  ["%","^"],
+  ["<",">","<=",">=","==","===","===="],
+  ["??,?"],
+  ["||","|"],
+  ["&&"],
+];
+
+
+const prefixes = [
+  ["-","+"]
 ];
 
 @immutable

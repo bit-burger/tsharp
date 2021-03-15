@@ -59,7 +59,7 @@ repeat_start(@int,@fnc) -> @str
 repeat_start(@str) -> @bol
 repeat_change(@str,@fnc) -> @bol
 
-event_spawn(@str,@fnc,@str?) -> @bol (letzter string ist identifier)
+event_spawn(@str,@fnc) -> @str? (letzter string ist identifier)
 event_kill(@str) -> @bol (killt process mit dem identifier)
 event_list(@str) -> @arr (alle funktionen Identifier von einem process)
 
@@ -160,6 +160,9 @@ bigger(@num,@num) -> @num >
 min(@num,@num) -> @bol
 max(@num,@num) -> @bol
 
+negative(@num) -> @num - (pre)
+positive(@num) -> @num + (pre)
+
 ### in- and output
 
 print(@any...)
@@ -175,6 +178,9 @@ pi
 rest(@int,@int) -> @int %
 pow(@num,@num?) -> @num ^
 sqrt(@num,@num?) -> @num
+
+squared(@num) -> @num ** (suffix)
+cubed(@num) -> @num *** (suffix)
 
 cos(@num) -> @num
 sin(@num) -> @num
@@ -212,5 +218,7 @@ validate_url(@str) -> @bol
 get_email(@str,@str) -> @any
 get_path(@str,@str) -> @any
 get_url(@str,@str) -> @any
-
 //funktionen die sich wiederholen, später mit farben markieren
+
+### set
+//methoden damit man array wie ein set benutzen kann

@@ -2,7 +2,7 @@ import 'dart:collection';
 
 import 'package:meta/meta.dart';
 import 'dart:math';
-import 'instructions.dart';
+import 'instructions/instructions.dart';
 import 'package:tsharp/constants.dart';
 
 @immutable

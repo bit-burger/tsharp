@@ -1,21 +1,32 @@
 import 'package:meta/meta.dart';
 
-import 'instructions.dart';
-import 'examples.dart';
-import 'constants.dart';
-import 'values.dart';
+import 'package:tsharp/direct_values/simple_values.dart';
+import '../direct_values/record_values.dart';
+import '../future_values/values.dart';
+
+class Execution {
+
+}
+class ParentExecution extends Execution {
+
+}
+
+
 
 
 @immutable
-class TSUse {
+class Library {
   final Map<String, Typ> types;
-  final Map<String, Value> register;
-  final Map<String, ValueHolder> records;
+  final Map<String, dynamic> variables;
+  final Map<String, Record> records;
+  final Map<String, FutureValue> operators;
+  final Map<String, FutureValue> prefix;
+  final Map<String, FutureValue> postfix;
 
-  TSUse(this.types, this.register, this.records);
+  Library(this.types, this.variables, this.records, this.operators, this.prefix, this.postfix);
 
-  factory TSUse.standart() {
-    return TSUse(
+  factory Library.standart() {
+    return Library(
       {
         "num": Typ(
           Set.from([
@@ -70,7 +81,7 @@ class TSUse {
         ])),
       }, {
 
-    }, {},
+    }, {},null,null,null,
     );
   }
 
@@ -80,6 +91,30 @@ class TSUse {
 
 class TS {}
 
-class Execution {
+
+
+//TSType != Typ
+TSType whichType(dynamic value) {
+  if(value is int)
+    return TSType.int;
+  if(value is double)
+    return TSType.kom;
+  if(value is String)
+    return TSType.str;
+  if(value is bool)
+    return TSType.bol;
+  if(value is List)
+    return TSType.arr;
+  if(value is Typ)
+    return TSType.typ;
+  if(value is TSFunction)
+    return TSType.fnc;
+  if(value is bool)
+    return TSType.bol;
+
+  if(value is Range)
+    return TSType.rng;
+  if(value is )
+    return TSType.int;
 
 }
