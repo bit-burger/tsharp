@@ -4,10 +4,10 @@ const String allowed_characters_for_variables =
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_";
 const String allowed_characters_for_operators = ".:;*+-~/#=!?%&^°`´<>";
 const List<String> keywords = <String>[
-  "var", "let", "params", "definition", "constant", "record",
-  "operator", "prefix", "postfix", "event", "delete"
+  "var", "let", "params", "define", "constant", "record",
+  "operator", "prefix", "postfix", "event",
   "assignment", "call", "delete",
-  "return", "stop", "error",
+  "return", "stop", "error", "kill",
   "if", "elif", "else", "assert",
   "while", "for",
   "use", "import",
@@ -28,31 +28,32 @@ const List<String> forbiddenOperators = [
   "=",
 ];
 
-const operator_upper_preference = [
-  [";","...","."],
+//anstatt List<List<String>>, List<Set<String>>
+const operator_higher_precedence = [
+  [";",".","...","..<"],
   [":","::",":?",":??"],
 ];
 
-const operator_lower_preference = [
-  ["*","/"],
-  ["+","-"],
+const operator_lower_precedence = [
   ["%","^"],
+  ["*","/","//","~/"],
+  ["+","-"],
+  ["<>","><"],
   ["<",">","<=",">=","==","===","===="],
   ["??,?"],
   ["||","|"],
   ["&&"],
 ];
 
+final operator_precedence_length = operator_lower_precedence.length + operator_higher_precedence.length + 1;
+
 
 const prefixes = [
-  ["-","+"]
+  ["-","+","!"]
 ];
 
-@immutable
-abstract class DebugObject {
-  final int debugLine;
-  final int debugCharacter;
+const postfixes = [
+  ["?",";","!","++","--"]
+];
 
-  DebugObject(this.debugLine, this.debugCharacter);
-
-}
+const anonymous_function_name = "[Anonymous]";

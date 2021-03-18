@@ -27,3 +27,13 @@ extension Containing on String {
     return true;
   }
 }
+
+extension ContainsWhere<Item> on List<List<Item>> {
+  int containsWhere(Item match) {
+    for(int i = 0; i < this.length; i++)
+      for(int j = 0; j < this[i].length; j++)
+        if(match == this[i][j])
+          return i;
+    return null;
+  }
+}

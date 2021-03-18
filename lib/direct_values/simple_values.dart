@@ -1,11 +1,19 @@
 import 'package:meta/meta.dart';
+
+import 'package:tsharp/constants.dart' show anonymous_function_name;
+
 import '../instructions/instructions.dart';
 import '../future_values/values.dart';
+import '../execution/execution.dart';
+import '../execution/root_execution.dart';
 
-
-class Execution {}
-enum SpecialValues { max, min, infinity, negative_infinity, absent } //negative infinity = operator vor infinity
-
+enum SpecialValues {
+  max,
+  min,
+  infinity,
+  negative_infinity,
+  absent
+} //negative infinity = operator vor infinity
 
 //abs = SpecialValues.absent
 //arr = List
@@ -26,6 +34,7 @@ class Rng {
 }
 
 enum TSType { abs, arr, bol, fnc, int, kom, rng, str, typ }
+
 @immutable
 class Typ {
   final Set<TSType> types;
@@ -43,16 +52,63 @@ class Typ {
   Typ(this.types);
 }
 
-
 @immutable
-abstract class TSFunction {}
+abstract class Logic<L> {}
 
-@immutable
-class Fnc {
-  final Execution parent;
-  final List<Instruction> instructions;
+abstract class TSFunction<L> extends Logic<L> {
+  final dynamic location;
 
-  Fnc(this.parent, FutureFunction function)
-      : this.instructions = function.instructions;
+  TSFunction(this.location);
 }
 
+class Fnc extends TSFunction<dynamic> {
+  final RootExecution rootExecution;
+
+  final Execution firstNonClosureExecution;
+
+  final Execution parentExecution;
+
+  final int line;
+
+  final int character;
+
+  final String name;
+
+  final List<Instruction> instructions;
+
+  Fnc copyWithNewName([String name = anonymous_function_name]) {
+    return Fnc.fromInstructionList(
+      this.instructions,
+      this.rootExecution,
+      this.firstNonClosureExecution,
+      this.parentExecution,
+      this.location,
+      this.line,
+      this.character,
+      name,
+    );
+  }
+
+  Fnc.fromInstructionList(
+    this.instructions,
+    this.rootExecution,
+    this.firstNonClosureExecution,
+    this.parentExecution,
+    dynamic location,
+    this.line,
+    this.character, [
+    this.name = anonymous_function_name,
+  ]) : super(location);
+
+  Fnc(
+    FutureFunction function,
+    this.rootExecution,
+    this.firstNonClosureExecution,
+    this.parentExecution,
+    dynamic location,
+    this.line,
+    this.character, [
+    this.name = anonymous_function_name,
+  ]) : this.instructions = function.instructions,super(location);
+
+}

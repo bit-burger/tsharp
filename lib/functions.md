@@ -44,7 +44,7 @@ bol(@str) -> @bol
 int(@str)/(@kom) -> @int
 kom(@str)/(@int)/(@int,@int) -> @kom .
 num(@str) -> @num
-rng(@int,@int) -> @rng ...
+rng(@int,@int) -> @rng ... [und] rng_small(@int,@int) -> @int ..<
 str(@pri) -> @str
 typ(@typ...) -> @typ
 
@@ -152,31 +152,42 @@ defill(@arr) -> @arr
 add(@num,@num) -> @num +
 subtract(@num,@num) -> @num -
 multiply(@num,@num) -> @num *
-divide(@num,@num) -> @num /
+divide(@num,@num) -> @kom /
+
+plus_one(@num) -> @num ++ (post)
+minus_one(@num) -> @num -- (post)
 
 smaller(@num,@num) -> @num <
 bigger(@num,@num) -> @num >
 
-min(@num,@num) -> @bol
-max(@num,@num) -> @bol
+min(@num,@num) -> @bol <>
+max(@num,@num) -> @bol ><
 
 negative(@num) -> @num - (pre)
 positive(@num) -> @num + (pre)
 
-### in- and output
+### in- and output/debug
+
+str_rep(@any) -> @str
+str_debug(@any) -> @str
 
 print(@any...)
 debug_print(@any...)
 
-output(@str) -> @abs >>
+output(@str) -> @abs >> (pre)
 input(@str?) -> @abs
 
 ### math
 
 pi
+euler
+two_sq
+three_sq
 
 rest(@int,@int) -> @int %
-pow(@num,@num?) -> @num ^
+pow(@num,@num?) -> @num ^ (pre/post)
+round_divide(@num,@num) -> @int ~/
+low_round_divide(@num,@num) -> @int //
 sqrt(@num,@num?) -> @num
 
 squared(@num) -> @num ** (suffix)

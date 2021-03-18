@@ -4,7 +4,7 @@ import '../future_values/values.dart';
 
 import 'package:tsharp/constants.dart';
 
-import 'debug.dart';
+import 'parse_debug.dart';
 import 'base_parsing.dart';
 import 'extensions.dart';
 
@@ -22,11 +22,13 @@ FutureValue parseValue(String value, int line, int character) {
   if (value == "\$") return RecordReference("params", line, character);
   if (value == "true") return SimpleValue(true, line, character);
   if (value == "false") return SimpleValue(false, line, character);
-  if (value == "absent" || value == "_") return SimpleValue(SpecialValues.absent, line, character);
+  if (value == "absent" || value == "_")
+    return SimpleValue(SpecialValues.absent, line, character);
   if (value == "function") return FutureFunction([], line, character);
   if (value == "min") throw SimpleValue(SpecialValues.min, line, character);
   if (value == "max") throw SimpleValue(SpecialValues.max, line, character);
-  if (value == "infinity") throw SimpleValue(SpecialValues.infinity, line, character);
+  if (value == "infinity")
+    throw SimpleValue(SpecialValues.infinity, line, character);
 
   final intParse = int.tryParse(value);
   if (intParse != null) return SimpleValue(intParse, line, character);
@@ -40,14 +42,16 @@ FutureValue parseValue(String value, int line, int character) {
       if (sub.length == 3)
         return TypeReference(sub, line, character);
       else
-        throw ParseException(line, character + 1,
-            "A type reference must only be 3 characters long (not including the @).");
+        throw ParseException(
+          "A type reference must only be 3 characters long (not including the @).",
+          line,
+          character + 1,
+        );
     }
     if (value[0] == "#") return RecordReference(sub, line, character);
   }
   return operatorParse(value, character, line);
 }
-
 
 //muss getrimmt sein
 FutureValue operatorParse(String s, int _character, int _line) {
@@ -109,28 +113,39 @@ FutureValue operatorParse(String s, int _character, int _line) {
   if (operators.isEmpty) return easyValues(s, _line, _character);
   // Guckt ob die operatoren alle a+b oder a + b sind und nicht a+ b (das wäre prefix)
   final filteredOperators = operators.where((operator) {
-    if(operator.begin==0) {
-      if(split[operator.end + 1]==" ")
-        throw ParseException(operator.line, operator.character + 1, "No space between the prefix \"${operator.operator}\" and the value \"${s.substring(operator.operator.length).trim()}\" is allowed.");
+    if (operator.begin == 0) {
+      if (split[operator.end + 1] == " ")
+        throw ParseException(
+            "No space between the prefix \"${operator.operator}\" and the value \"${s.substring(operator.operator.length).trim()}\" is allowed.",
+            operator.line,
+            operator.character + 1);
       return false;
-    } else if(operator.end==s.length - 1){
-      if(split[operator.begin - 1]==" ")
-        throw ParseException(operator.line, operator.character - 1, "No space between the postfix \"${operator.operator}\" and the value \"${s.substring(0, s.trim().length - operator.operator.length).trim()}\" is allowed.");
+    } else if (operator.end == s.length - 1) {
+      if (split[operator.begin - 1] == " ")
+        throw ParseException(
+            "No space between the postfix \"${operator.operator}\" "
+            "and the value \"${s.substring(0, s.trim().length - operator.operator.length).trim()}\" is allowed.",
+            operator.line,
+            operator.character - 1);
       return false;
     }
-    return (split[operator.end + 1] == " ") == (split[operator.begin - 1] == " ");
+    return (split[operator.end + 1] == " ") ==
+        (split[operator.begin - 1] == " ");
   }).toList(growable: false);
   if (filteredOperators.isEmpty && operators.length > 0) {
     if (operators.length > 2)
       throw ParseException(
-          _line,
-          _character,
-          "You cannot put write too operators next to each other, the operators in question might be: " +
+          "You cannot put write too operators next to each other,"
+                  " the operators in question might be: " +
               operators
                   .map((operator) =>
-              "\"" + s.substring(operator.begin, operator.end + 1) +"\"")
+                      "\"" +
+                      s.substring(operator.begin, operator.end + 1) +
+                      "\"")
                   .toList(growable: false)
-                  .prettyPrint);
+                  .prettyPrint,
+          _line,
+          _character);
     String prefix = "";
     int i = 0;
     while (i < split.length &&
@@ -141,12 +156,15 @@ FutureValue operatorParse(String s, int _character, int _line) {
     if (prefix.length > 0) {
       return PrefixCall(
           prefix,
-          [parseValue(s.substring(i), operators.first.line, operators.first.character + prefix.length)],
+          [
+            parseValue(s.substring(i), operators.first.line,
+                operators.first.character + prefix.length)
+          ],
           operators.first.line,
           operators.first.character);
     }
 
-    if(operators.length==2) operators.removeAt(0);
+    if (operators.length == 2) operators.removeAt(0);
     String postfix = "";
     s = s.trimLeft();
     i = s.length - 1;
@@ -206,10 +224,10 @@ String realString(String s, int line, int character) {
         backslash = false;
       } else
         throw ParseException(
-            line,
-            character,
             "cannot backslash the character \"${s[i]}\", you can only backslash: " +
-                backslashable_characters_as_string);
+                backslashable_characters_as_string,
+            line,
+            character);
     } else if (s[i] == "\\") {
       backslash = true;
       continue;

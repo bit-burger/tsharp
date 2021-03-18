@@ -1,30 +1,26 @@
 import 'package:meta/meta.dart';
+
 import 'package:tsharp/constants.dart';
+import 'package:tsharp/debug.dart';
 
 import 'extensions.dart';
 
 @immutable
-class ParseException extends DebugObject {
-
-  static String generateErrorShow(String line, int character) {
-    return "  " + line + "\n  " + (" " * character) + "^\n";
-  }
-
-  final String message;
-
-  ParseException(int debugLine, int debugCharacter, this.message)
-      : super(debugLine, debugCharacter);
+class ParseException extends TSException {
+  ParseException(String message, int debugLine, int debugCharacter)
+      : super(message, debugLine, debugCharacter, null);
 }
 
 class UnknownParseException extends ParseException {
   UnknownParseException(int debugLine, int debugCharacter)
-      : super(debugLine, debugCharacter, "Unknown Expression. ");
+      : super("Unknown Expression. ", debugLine, debugCharacter);
 }
 
 class CustomParseException extends ParseException {
-  CustomParseException(int line, int character, String message)
-      : super(line, character, message);
+  CustomParseException(String message, int line, int character)
+      : super(message, line, character);
 }
+
 
 @immutable
 class Klammer {
@@ -35,6 +31,7 @@ class Klammer {
   Klammer(this.klammer, this.character, this.line);
 }
 
+
 class Operator {
   String operator;
   final int begin;
@@ -44,17 +41,19 @@ class Operator {
 
   int get length => end - begin;
 
+
+  
   static Operator mostImportant(List<Operator> competingOperators) {
     List<Operator> upper_preference =
-    List.filled(operator_upper_preference.length, null);
+    List.filled(operator_higher_precedence.length, null);
     List<Operator> lower_preference =
-    List.filled(operator_lower_preference.length, null);
+    List.filled(operator_lower_precedence.length, null);
     Operator middle_preference;
 
     competingOperators:
     for (Operator competingOperator in competingOperators) {
       int i = 0;
-      for (List<String> operators in operator_upper_preference) {
+      for (List<String> operators in operator_higher_precedence) {
         if (operators.contains(competingOperator.operator) &&
             upper_preference[i] == null) {
           upper_preference[i] = competingOperator;
@@ -63,7 +62,7 @@ class Operator {
         i++;
       }
       i = 0;
-      for (List<String> operators in operator_lower_preference) {
+      for (List<String> operators in operator_lower_precedence) {
         if (operators.contains(competingOperator.operator) &&
             lower_preference[i] == null) {
           upper_preference[i] = competingOperator;

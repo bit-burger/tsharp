@@ -1,10 +1,7 @@
 import 'package:meta/meta.dart';
-import 'package:tsharp/constants.dart';
 
 import '../future_values/values.dart';
-import '../direct_values/simple_values.dart';
-
-import 'closure.dart';
+import 'package:tsharp/debug.dart';
 
 @immutable
 abstract class Instruction {
@@ -36,7 +33,7 @@ class MultipleVariableOrConstantDeclarationVariable extends DebugObject {
 
 class MultipleVariableOrConstantDeclarationRestAsArrayVariable extends MultipleVariableOrConstantDeclarationVariable {
   MultipleVariableOrConstantDeclarationRestAsArrayVariable(String name, FutureValue defaultValue,int line, int character) : super(name, defaultValue, line, character);
-  //REST: var [a, b = 3, c... = [2,2]] = [2,3,4,5,6] (c nimmt alle werte ab 4)
+//REST: var [a, b = 3, c... = [2,2]] = [2,3,4,5,6] (c nimmt alle werte ab 4)
 }
 
 abstract class MultipleDeclaration extends Declaration {
@@ -112,3 +109,6 @@ class Delete extends Instruction {
 
 }
 
+class Kill extends Instruction {
+  Kill(int debugLine, int debugCharacter) : super(debugLine, debugCharacter);
+}

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 
-import 'package:tsharp/tsharp.dart';
+import 'package:tsharp/legacyTSHARP.dart';
 import 'package:args/args.dart';
 
 
