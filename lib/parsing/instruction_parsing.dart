@@ -36,7 +36,7 @@ List<MultipleVariableOrConstantDeclarationVariable> parseVariableLists(
     for (int i = 0; i < s.length; i++) {
       final char = s[i];
       if (system == 0) {
-        if (char.containsOneOf(allowed_characters_for_variables)) {
+        if (char.containsOneOf(allowed_characters_for_identifiers)) {
           if (points > 0)
             throw ParseException(
                 "After the points, you cannot continue with the identifier name. ",
@@ -113,7 +113,10 @@ List<MultipleVariableOrConstantDeclarationVariable> parseVariableLists(
 
 // ' ist kommentar
 List<Instruction> parse(String s, int line, int character) {
+  print(s.contains("\n"));
   var rawInstruction = <String>[""];
+  var rawInstructionLines = <int>[];
+  var rawInstructionCharacters = <int>[];
   final instructions = <Instruction>[];
   final klammern = <Klammer>[];
   bool wasBackslash = false;
@@ -121,23 +124,26 @@ List<Instruction> parse(String s, int line, int character) {
   var globalCharacter = -1;
   //schlechter code, denn am ende ist noch ein extra character ??
   final List<String> split = (s + "\n").split("");
+  var skip = 0;
   try {
-    split.forEach((char) {
+    parsing:for (int i = 0; i < split.length; i++) {
+      final char = split[i];
       character++;
       globalCharacter++;
-      if (char == " ") {
-        if (klammern.isNotEmpty) {
-          rawInstruction.last += char;
-        } else if (rawInstruction.last.isNotEmpty) {
-          rawInstruction.add("");
-        }
-        return;
-      } else if (char == "\n") {
+      if (char == "\n") {
         line++;
-        character = -1;
+        character = 0;
         if (klammern.isEmpty) {
+          if (rawInstruction.first.startsWith("if") ||
+              rawInstruction.first.startsWith("for") ||
+              rawInstruction.first.startsWith("while"));
+
           print(rawInstruction);
+          print(rawInstructionLines);
+          print(rawInstructionCharacters);
           rawInstruction = [""];
+          rawInstructionLines = [];
+          rawInstructionCharacters = [];
           //instruction code
           //es muss noch ein = zeichen dort sein (bei event, operator, prefix, postfix)
           //operator %& = {
@@ -146,10 +152,53 @@ List<Instruction> parse(String s, int line, int character) {
         } else {
           rawInstruction.last += char;
         }
-        return;
+        continue parsing;
+      }
+
+      if(skip!=0) {
+        skip--;
+        continue parsing;
+      }
+      if (char == " ") {
+        if (klammern.isNotEmpty) {
+          rawInstruction.last += char;
+        } else if (rawInstruction.last.isNotEmpty) {
+          int j = i + 1;
+          while(j<split.length&&split[j]==" ")
+            j++;
+          var operator = "";
+          while(j<split.length)
+            if(allowed_characters_for_operators.contains(split[j])) {
+              operator += split[j];
+              j++;
+            } else if(split[j]==" ")
+              break;
+            else {
+              rawInstruction.add("");
+              continue parsing;
+            }
+          while(j<split.length&&split[j]==" ")
+            j++;
+          if(forbidden_operators.contains(operator)) {
+            rawInstruction.add("");
+          } else {
+            rawInstruction.last += s.substring(i,j);
+            skip = j - i - 1;
+          }
+        }
+        continue;
       } else if (char == "\"") {
         if (!wasBackslash) {
-          if (klammern.isEmpty)
+          if (klammern.isEmpty ||
+              klammern.last.klammer != "\"") if (rawInstruction
+                  .last[rawInstruction.last.length - 1] ==
+              "\"")
+            throw ParseException(
+                "To concatenate two strings use the \"+\" operator "
+                "or the add function. ",
+                line,
+                character);
+          else
             klammern.add(Klammer(char, character, line));
           else if (klammern.last.klammer == "\"") klammern.removeLast();
         }
@@ -191,7 +240,7 @@ List<Instruction> parse(String s, int line, int character) {
           );
         }
       }
-      if (wasBackslash) {
+      backlash_checking: if (wasBackslash) {
         wasBackslash = false;
       } else if (char == "\\") {
         if (klammern.isEmpty || klammern.last.klammer != "\"")
@@ -199,6 +248,8 @@ List<Instruction> parse(String s, int line, int character) {
               "Cannot backslash characters outside of a string",
               line,
               character);
+        if(split.length - 1 == globalCharacter)
+          break backlash_checking;
         final nextCharacter = split[globalCharacter + 1];
         if (backslashable_characters[nextCharacter] == null) {
           if (nextCharacter == "\n")
@@ -215,8 +266,12 @@ List<Instruction> parse(String s, int line, int character) {
         }
         wasBackslash = true;
       }
+      if(rawInstruction.last.isEmpty) {
+        rawInstructionLines.add(line);
+        rawInstructionCharacters.add(character);
+      }
       rawInstruction.last += char;
-    });
+    }
     if (klammern.isNotEmpty) {
       if (klammern.last.klammer == "\"")
         throw ParseException("A string needs to be closed", klammern.last.line,
@@ -290,6 +345,7 @@ b... = [asdf, 5 + 34, !5 + 6],
               TSException.generateErrorShow(
                 line,
                 error.debugCharacter - 1,
+                error.secondDebugCharacter - 1,
               ));
     }
   }

@@ -6,17 +6,19 @@ import 'package:tsharp/constants.dart';
 
 import 'parse_debug.dart';
 import 'base_parsing.dart';
+import 'instruction_parsing.dart';
 import 'extensions.dart';
 
-FutureValue parseValueNoTrim(String value, int line, int character) {
+
+FutureValue parseValueNoTrim(String value, int line, int character, [bool alreadyInOperators = false]) {
   final trim = value.trimLeft();
 
   return parseValue(
-      trim.trimRight(), line, character + value.length - trim.length);
+      trim.trimRight(), line, character + value.length - trim.length,alreadyInOperators);
 }
 
 //muss getrimmed sein
-FutureValue parseValue(String value, int line, int character) {
+FutureValue parseValue(String value, int line, int character, [bool alreadyInOperators = false]) {
   if (value.trim().length > value.length)
     throw Exception("PLEASE TRIM LENGTH BEFORE USING \"parseValue\"");
   if (value == "\$") return RecordReference("params", line, character);
@@ -35,8 +37,8 @@ FutureValue parseValue(String value, int line, int character) {
   final komParse = double.tryParse(value);
   if (komParse != null) return SimpleValue(komParse, line, character);
   final sub = value.substring(1);
-  if (sub.containsOneOf(allowed_characters_for_variables)) {
-    if (value[0].containsOneOf(allowed_characters_for_variables))
+  if (sub.containsOneOf(allowed_characters_for_identifiers)) {
+    if (value[0].containsOneOf(allowed_characters_for_identifiers))
       return VariableReference(value, line, character);
     if (value[0] == "@") {
       if (sub.length == 3)
@@ -50,6 +52,18 @@ FutureValue parseValue(String value, int line, int character) {
     }
     if (value[0] == "#") return RecordReference(sub, line, character);
   }
+  print(character.toString() + ", " + (character + value.split("\n").first.length).toString() + " LSDlkajsd");
+  if(alreadyInOperators)
+    throw ParseException(
+      "This cannot be parsed as a value for an unknown reason, possible reasons are:\n"
+        "  - A operator is missing\n"
+        "  - A operator is written as a prefix or postfix, "
+              "to fix this insert at least one space on both ends or remove all space on bot ends\n"
+        "  - You tried to reference a variable, constant, type, or record but not all characters were one of \"$allowed_characters_for_identifiers\"\n",
+      line,
+      character,
+      character + value.split("\n").first.length,
+    );
   return operatorParse(value, character, line);
 }
 
@@ -66,6 +80,7 @@ FutureValue operatorParse(String s, int _character, int _line) {
   Operator operator;
   final split = (s + " ").split("");
 
+  //holt alle operatoren raus
   split.forEach((char) {
     character++;
     globalCount++;
@@ -75,16 +90,17 @@ FutureValue operatorParse(String s, int _character, int _line) {
         operator = Operator(char, globalCount, line, character);
       } else {
         operator.operator += char;
-        operator.end++;
+        operator.end = globalCount;
       }
       return;
     } else if (char == "\n") {
+      //if(klammern.isNotEmpty)
+      //  return;
       line++;
       character = 0;
-      return;
     } else if (char == "\"") {
       if (!wasBackslash) {
-        if (klammern.isEmpty)
+        if (klammern.isEmpty||klammern.last.klammer!="\"")
           klammern.add(Klammer(char, character, line));
         else if (klammern.last.klammer == "\"") klammern.removeLast();
       }
@@ -96,7 +112,8 @@ FutureValue operatorParse(String s, int _character, int _line) {
         ;
       else if ((klammern.last.klammer == "{" && char == "}") ||
           (klammern.last.klammer == "(" && char == ")") ||
-          (klammern.last.klammer == "[" && char == "]")) klammern.removeLast();
+          (klammern.last.klammer == "[" && char == "]"))
+        klammern.removeLast();
     }
     if (wasBackslash) {
       wasBackslash = false;
@@ -110,9 +127,14 @@ FutureValue operatorParse(String s, int _character, int _line) {
     }
   });
 
-  if (operators.isEmpty) return easyValues(s, _line, _character);
+  if (operators.isEmpty) return easyValues(s, _line, _character,);
   // Guckt ob die operatoren alle a+b oder a + b sind und nicht a+ b (das wäre prefix)
+  //throwt bei forbidden_operators (=) und bei ignoriert ignorierte (.)
   final filteredOperators = operators.where((operator) {
+    if(forbidden_operators.contains(operator.operator))
+      throw ParseException("Operator \"${operator.operator}\" not allowed", line, character);
+    if(ignored_operators.contains(operator.operator))
+      return false;
     if (operator.begin == 0) {
       if (split[operator.end + 1] == " ")
         throw ParseException(
@@ -145,7 +167,8 @@ FutureValue operatorParse(String s, int _character, int _line) {
                   .toList(growable: false)
                   .prettyPrint,
           _line,
-          _character);
+          _character,
+          character,);
     String prefix = "";
     int i = 0;
     while (i < split.length &&
@@ -189,9 +212,10 @@ FutureValue operatorParse(String s, int _character, int _line) {
     return OperatorCall(
         operator.operator, values, operator.line, operator.character);
   }
+  throw UnknownParseException(_line, _character);
 }
 
-//Strings,Arrays,Funktionen
+//Strings,Arrays,Funktionen, muss nicht getrimmt sein
 FutureValue easyValues(String s, int line, int character) {
   if (s.startsWith("\"") && s.endsWith("\""))
     return SimpleValue(
@@ -200,16 +224,75 @@ FutureValue easyValues(String s, int line, int character) {
         character);
   else if (s.startsWith("[") && s.endsWith("]")) {
     final List<FutureValue> values = List.empty(growable: true);
-    parseLists(s, (s, line, character) {
+    parseLists(s.substring(1,s.length - 1), (s, line, character) {
       values.add(parseValue(s, line, character));
     }, line, character + 1);
     return FutureArray(values, line, character);
   } else if (s.startsWith("{") && s.endsWith("}"))
-    return SimpleValue(s.substring(1, s.length - 1), line, character);
-  else if (s.startsWith("(") && s.endsWith(")"))
-    return parseValueNoTrim(s.substring(1, s.length - 1), line, character);
+    return FutureFunction(parse(s.substring(1,s.length - 1),line,character + 1),line,character);
+  else if (s.endsWith(")"))
+    if(s.startsWith("("))
+      return parseValueNoTrim(s.substring(1, s.length - 1), line, character);
+    else {
+      return functionCall(s, line, character);
+    }
   //funktions call parsen
-  return parseValueNoTrim(s, line, character);
+  return parseValueNoTrim(s, line, character, true);
+}
+
+//trimmed, nur von easyValues callen
+FunctionCall functionCall(String s, int _line, int _character) {
+  final klammern = <Klammer>[];
+  bool wasBackslash = false;
+  var character = _character - 1;
+  var line = _line;
+  var globalCharacter = -1;
+  var returnValue;
+  final List<String> split = s.split("");
+  var f = false;
+  split.forEach((char) {
+    if(f) return;
+    character++;
+    globalCharacter++;
+    if (char == "\n") {
+      line++;
+      character = 0;
+    } else if (char == "\"") {
+      if (!wasBackslash) {
+        if (klammern.isEmpty||klammern.last.klammer!="\"")
+          klammern.add(Klammer(char, character, line));
+        else if (klammern.last.klammer == "\"") klammern.removeLast();
+      }
+    } else if(char == "(") {
+      if (klammern.isEmpty) {
+        final List<FutureValue> values = List.empty(growable: true);
+        parseLists(s.substring(globalCharacter + 1,s.length - 1), (s, line, character) {
+          values.add(parseValue(s, line, character));
+        }, line, character + 1);
+        returnValue = FunctionCall(parseValue(s.substring(0,globalCharacter), _line, _character), values, _line, _character);
+        f = true;
+        return;
+      } else if (klammern.last.klammer != "\"") {
+        klammern.add(Klammer("(", character, line));
+      }
+    } else if (char == "{" || char == "[" || char == "(") {
+      if (klammern.isEmpty || klammern.last.klammer != "\"")
+        klammern.add(Klammer(char, character, line));
+    } else if (char == "}" || char == ")" || char == "]") {
+      if (klammern.isNotEmpty && klammern.last.klammer == "\"")
+        ;
+      else if ((klammern.last.klammer == "{" && char == "}") ||
+          (klammern.last.klammer == "[" && char == "]")
+          || (klammern.last.klammer == "(" && char == ")"))
+        klammern.removeLast();
+    }
+    if (wasBackslash) {
+      wasBackslash = false;
+    } else if (char == "\\") {
+      wasBackslash = true;
+    }
+  });
+  return returnValue;
 }
 
 String realString(String s, int line, int character) {

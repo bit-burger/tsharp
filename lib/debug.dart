@@ -14,7 +14,7 @@ abstract class TSException {
 
 
   static String generateErrorShow(String line, int character, [int secondDebugCharacter])
-      => "  " + line + "\n  " + (" " * character) + "^"*((secondDebugCharacter ?? character) - character + 1) + "\n";
+      => "  " + line + "\n  " + (" " * character) + ("^"*((secondDebugCharacter ?? character) - character)) + "\n";
 
   final String message;
   final int debugLine;

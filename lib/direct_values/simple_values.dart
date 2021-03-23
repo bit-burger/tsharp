@@ -6,6 +6,8 @@ import '../instructions/instructions.dart';
 import '../future_values/values.dart';
 import '../execution/execution.dart';
 import '../execution/root_execution.dart';
+import '../execution/runtime_classes.dart';
+import '../libraries/location.dart';
 
 enum SpecialValues {
   max,
@@ -111,4 +113,17 @@ class Fnc extends TSFunction<dynamic> {
     this.name = anonymous_function_name,
   ]) : this.instructions = function.instructions,super(location);
 
+}
+
+@immutable
+abstract class NativeFunction<L extends NativeLibraryLocation> extends TSFunction<L> {
+  Future<dynamic> function(
+      List<dynamic> parameters,
+      RootExecution rootExecution,
+      Execution firstNonClosureExecution,
+      Execution parentExecution,
+      String functionName,
+      Stack stack);
+
+  NativeFunction(L location) : super(location);
 }

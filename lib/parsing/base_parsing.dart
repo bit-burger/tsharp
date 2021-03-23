@@ -40,7 +40,7 @@ void parseLists(
       return;
     } else if (char == "\"") {
       if (!wasBackslash) {
-        if (klammern.isEmpty)
+        if (klammern.isEmpty||klammern.last.klammer!="\"")
           klammern.add(Klammer(char, character, line));
         else if (klammern.last.klammer == "\"") klammern.removeLast();
       }

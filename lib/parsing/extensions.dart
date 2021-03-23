@@ -26,6 +26,21 @@ extension Containing on String {
     }
     return true;
   }
+
+  bool startsWithOneOf(List<String> ls) {
+    for(String s in ls) {
+      if(this.startsWith(s)) return true;
+    }
+    return false;
+  }
+
+  bool endsWithOneOf(List<String> ls) {
+    for(String s in ls) {
+      if(this.endsWith(s)) return true;
+    }
+    return false;
+  }
+
 }
 
 extension ContainsWhere<Item> on List<List<Item>> {

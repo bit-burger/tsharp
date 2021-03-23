@@ -28,9 +28,9 @@ or(@bol,@bol) -> @bol ||
 either(@bol,@bol) -> @bol |
 not(@bol) -> @bol ! (pre)
 
-is_type(@any,@typ) -> @bol ===
+is_type(@any,@typ) -> @bol ~=
 is_not_type(@any,@typ) -> @bol !==
-is_types(@arr,@arr) -> @bol ====
+is_types(@arr,@arr) -> @bol ~~=
 is_not_types(@arr,@arr) -> @bol !===
 is_same_type(@typ,@typ) -> @bol 
 
@@ -104,6 +104,8 @@ indexed(@s) -> @arr
 enumerated(@s) -> @arr
 
 map(@s,@fnc) -> @s
+map_add(@s,@fnc) -> @any
+all(@arr,@any) -> @bol
 forEach(@s,@fnc) -> @abs
 filter(@s,@fnc) -> @s
 sort(@s,@fnc) -> @s
@@ -115,7 +117,10 @@ push(@s,@item...) -> @s
 
 remove(@s,@int) -> @s
 insert(@s,@int,@item...) -> @s
+
 replace(@s,@rng,@s) -> @s
+swap(@s,@int,@int) -> @s
+
 sub(@s,@int,@int)/(@s,@rng) -> @s
 cut(@s,@int,@int)/(@s,@rng) -> @s
 
@@ -185,10 +190,10 @@ two_sq
 three_sq
 
 rest(@int,@int) -> @int %
-pow(@num,@num?) -> @num ^ (pre/post)
+pow(@num,@num?) -> @num ^ (op/post)
 round_divide(@num,@num) -> @int ~/
 low_round_divide(@num,@num) -> @int //
-sqrt(@num,@num?) -> @num
+sqrt(@num,@num?) -> @num -^ (op/post)
 
 squared(@num) -> @num ** (suffix)
 cubed(@num) -> @num *** (suffix)
@@ -197,8 +202,9 @@ cos(@num) -> @num
 sin(@num) -> @num
 tan(@num) -> @num
 
-round_low()
-round()
+round_low(@num) -> @int
+round_high(@num) -> @int
+round(@num) -> @int ~ (pre)
 
 ### random
 

@@ -13,10 +13,8 @@ class RunTimeException extends TSException {
 @immutable
 class ValueHolder {
   final String name;
-  final bool isConstant;
-  final bool isLibrary;
 
-  ValueHolder(this.name,{this.isConstant = false, this.isLibrary = false});
+  ValueHolder(this.name);
 
   @override
   int get hashCode => name.hashCode;
