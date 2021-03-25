@@ -13,7 +13,7 @@ class ParseException extends TSException {
 
 class UnknownParseException extends ParseException {
   UnknownParseException(int debugLine, int debugCharacter, [int secondDebugCharacter])
-      : super("Unknown Expression. ", debugLine, debugCharacter, secondDebugCharacter);
+      : super("Unknown expression. ", debugLine, debugCharacter, secondDebugCharacter);
 }
 
 class CustomParseException extends ParseException {
@@ -31,6 +31,34 @@ class Klammer {
   Klammer(this.klammer, this.character, this.line);
 }
 
+class Token {
+  String token;
+  int line;
+  int character;
+  bool clean = true;
+  Token([this.token = "", this.line, this.character]);
+
+  @override
+  bool operator ==(Object other) =>
+      other is Token &&
+          line == other.line &&
+          character == other.character &&
+          token == other.token;
+
+  @override
+  String toString() =>
+      token == "" ? "[EMPTY] " : "\"$token\" ($line,$character)" + (clean ? "" : "[NC]");
+}
+
+class ParseDebugStream {
+  void warning(String message, int line, int character) {
+
+  }
+
+  void failure(String message, int line, int character) {
+
+  }
+}
 
 class Operator {
   String operator;
@@ -76,3 +104,4 @@ class Operator {
 
   Operator(this.operator, this.begin, this.line, this.character);
 }
+

@@ -5,6 +5,8 @@ author: Tony Borchert
 homepage:
 
 dependencies:
+#  flutter:
+#    sdk: flutter
   meta: any
 dev_dependencies:
   test: ^1.15.7

@@ -10,27 +10,26 @@ import 'instruction_parsing.dart';
 import 'extensions.dart';
 
 
-FutureValue parseValueNoTrim(String value, int line, int character, [bool alreadyInOperators = false]) {
+FutureValue parseValueNoTrim(String value, int line, int character, [bool clean = false]) {
   final trim = value.trimLeft();
 
   return parseValue(
-      trim.trimRight(), line, character + value.length - trim.length,alreadyInOperators);
+      trim.trimRight(), line, character + value.length - trim.length,clean);
 }
 
 //muss getrimmed sein
-FutureValue parseValue(String value, int line, int character, [bool alreadyInOperators = false]) {
-  if (value.trim().length > value.length)
-    throw Exception("PLEASE TRIM LENGTH BEFORE USING \"parseValue\"");
+FutureValue parseValue(String value, [int line, int character, bool clean = false]) {
+  assert (value.trim().length == value.length);
   if (value == "\$") return RecordReference("params", line, character);
   if (value == "true") return SimpleValue(true, line, character);
   if (value == "false") return SimpleValue(false, line, character);
   if (value == "absent" || value == "_")
     return SimpleValue(SpecialValues.absent, line, character);
   if (value == "function") return FutureFunction([], line, character);
-  if (value == "min") throw SimpleValue(SpecialValues.min, line, character);
-  if (value == "max") throw SimpleValue(SpecialValues.max, line, character);
+  if (value == "min") return SimpleValue(SpecialValues.min, line, character);
+  if (value == "max") return SimpleValue(SpecialValues.max, line, character);
   if (value == "infinity")
-    throw SimpleValue(SpecialValues.infinity, line, character);
+    return SimpleValue(SpecialValues.infinity, line, character);
 
   final intParse = int.tryParse(value);
   if (intParse != null) return SimpleValue(intParse, line, character);
@@ -52,10 +51,10 @@ FutureValue parseValue(String value, int line, int character, [bool alreadyInOpe
     }
     if (value[0] == "#") return RecordReference(sub, line, character);
   }
-  print(character.toString() + ", " + (character + value.split("\n").first.length).toString() + " LSDlkajsd");
-  if(alreadyInOperators)
+  if(clean)
     throw ParseException(
       "This cannot be parsed as a value for an unknown reason, possible reasons are:\n"
+        "  - A reserved word was used as an identifier or in a wrong context (before line, after the line, on the line)\n"
         "  - A operator is missing\n"
         "  - A operator is written as a prefix or postfix, "
               "to fix this insert at least one space on both ends or remove all space on bot ends\n"
@@ -223,13 +222,16 @@ FutureValue easyValues(String s, int line, int character) {
         line,
         character);
   else if (s.startsWith("[") && s.endsWith("]")) {
+    final sub = s.substring(1,s.length - 1);
+    if(sub.trim().length==0)
+      return FutureArray([], line, character);
     final List<FutureValue> values = List.empty(growable: true);
-    parseLists(s.substring(1,s.length - 1), (s, line, character) {
+    parseLists(sub, (s, line, character) {
       values.add(parseValue(s, line, character));
     }, line, character + 1);
     return FutureArray(values, line, character);
   } else if (s.startsWith("{") && s.endsWith("}"))
-    return FutureFunction(parse(s.substring(1,s.length - 1),line,character + 1),line,character);
+    return FutureFunction(/*parseToTokens(s.substring(1,s.length - 1),line,character + 1)*/null,line,character);
   else if (s.endsWith(")"))
     if(s.startsWith("("))
       return parseValueNoTrim(s.substring(1, s.length - 1), line, character);
@@ -247,11 +249,8 @@ FunctionCall functionCall(String s, int _line, int _character) {
   var character = _character - 1;
   var line = _line;
   var globalCharacter = -1;
-  var returnValue;
   final List<String> split = s.split("");
-  var f = false;
-  split.forEach((char) {
-    if(f) return;
+  for(String char in split) {
     character++;
     globalCharacter++;
     if (char == "\n") {
@@ -265,13 +264,21 @@ FunctionCall functionCall(String s, int _line, int _character) {
       }
     } else if(char == "(") {
       if (klammern.isEmpty) {
+        if(split[globalCharacter - 1]==" ") {
+          throw ParseException(
+              "Cannot use a space, between the method and the method parameters",
+              line,
+              character);
+        }
+        final sub = s.substring(globalCharacter + 1,s.length - 1);
+        final val = parseValue(s.substring(0,globalCharacter), _line, _character);
+        if(sub.trim().length==0)
+          return FunctionCall(val, [], _line, _character);
         final List<FutureValue> values = List.empty(growable: true);
-        parseLists(s.substring(globalCharacter + 1,s.length - 1), (s, line, character) {
+        parseLists(sub, (s, line, character) {
           values.add(parseValue(s, line, character));
         }, line, character + 1);
-        returnValue = FunctionCall(parseValue(s.substring(0,globalCharacter), _line, _character), values, _line, _character);
-        f = true;
-        return;
+        return FunctionCall(val, values, _line, _character);
       } else if (klammern.last.klammer != "\"") {
         klammern.add(Klammer("(", character, line));
       }
@@ -291,8 +298,8 @@ FunctionCall functionCall(String s, int _line, int _character) {
     } else if (char == "\\") {
       wasBackslash = true;
     }
-  });
-  return returnValue;
+  }
+  throw UnknownParseException(_line, _character);
 }
 
 String realString(String s, int line, int character) {
