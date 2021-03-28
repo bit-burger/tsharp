@@ -20,27 +20,28 @@ const String allowed_whitespace = " \n";
 const String allowed_characters =
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_.:;*+-~/#=!?%&^°`´<> \n'@#";
 
-const List<String> keywords = <String>[
+const Set<String> keywords = <String>{
   "var", "let", "params", "define", "constant", "record",
   "operator", "prefix", "postfix", "event",
   "assignment", "call", "delete",
-  "return", "stop", "error", "kill",
-  "if", "else", "assert",
+  "return", "stop", "error", "kill", "back",
+  "if", "else", "guard", "assert",
   "while", "for",
   "use", "import",
   //Optional: ["params","assignment","call"]
-];
+};
 
-const List<String> extendable = <String>[
+const Set<String> extendable = <String>{
   "if",
   "while",
   "for",
   "else",
   "return",
   "assert",
-];
+  "guard",
+};
 
-const List<String> standart_values = [
+const Set<String> standart_values = {
   "true",
   "false",
   "absent",
@@ -49,42 +50,40 @@ const List<String> standart_values = [
   "infinity",
   "min",
   "max"
-];
+};
 const Map<String, String> backslashable_characters = {
   "n": "\n",
   "\\": "\\",
   "\"": "\"",
 };
 
-const Map<String,String> brackets = {
-  "{" : "}",
-  "(" : ")",
-  "[" : "]",
+const Map<String, String> brackets = {
+  "{": "}",
+  "(": ")",
+  "[": "]",
 };
 
 const String backslashable_characters_as_string = "\\n, \\\\, \\\"";
 
-const List<String> forbidden_operators = ["=", "+=", "-=", "*=", "/="];
+const Set<String> forbidden_operators = {"=", "+=", "-=", "*=", "/="};
 
-const List<String> ignored_operators = [
-  ".",
-];
+const Set<String> ignored_operators = {"."};
 
 //anstatt List<List<String>>, List<Set<String>>
-const operator_higher_precedence = [
-  [";", ".", "...", "..<"],
-  [":", "::", ":?", ":??"],
+const List<Set<String>> operator_higher_precedence = [
+  {";", ".", "...", "..<"},
+  {":", "::", ":?", ":??"},
 ];
 
-const operator_lower_precedence = [
-  ["%", "^"],
-  ["*", "/", "//", "~/"],
-  ["+", "-"],
-  ["<>", "><"],
-  ["<", ">", "<=", ">=", "==", "===", "===="],
-  ["??,?"],
-  ["||", "|"],
-  ["&&"],
+const List<Set<String>> operator_lower_precedence = [
+  {"%", "^"},
+  {"*", "/", "//", "~/"},
+  {"+", "-"},
+  {"<>", "><"},
+  {"<", ">", "<=", ">=", "==", "===", "===="},
+  {"??", "?"},
+  {"||", "|"},
+  {"&&"},
 ];
 
 final operator_precedence_length =
@@ -97,5 +96,5 @@ const prefixes = [
 const postfixes = [
   ["?", ";", "!", "++", "--"]
 ];
-
+const error_space = "    ";
 const anonymous_function_name = "[Anonymous]";

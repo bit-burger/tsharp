@@ -1,12 +1,11 @@
-import 'package:meta/meta.dart';
 import 'package:tsharp/constants.dart';
-import 'package:tsharp/debug.dart';
 
 import 'parse_debug.dart';
+import 'parse_error_handling.dart';
 
 
 
-List<List<Token>> parseToTokens(String s, int line, int character) {
+List<List<Token>> parseToTokens(String s, int line, int character, ParseDebugStream stream) {
   final List<List<Token>> tokens = <List<Token>>[
     [Token()]
   ];
@@ -119,10 +118,10 @@ List<List<Token>> parseToTokens(String s, int line, int character) {
   }
   if (klammern.isNotEmpty) {
     if (klammern.last.klammer == "\"")
-      throw ParseException("A string needs to be closed", klammern.last.line,
+      throw ParseException.single("A string needs to be closed", klammern.last.line,
           klammern.last.character);
     else
-      throw ParseException(
+      throw ParseException.single(
           "Bracket \"${klammern.last.klammer}\" is unnecessary and was not closed",
           klammern.last.line,
           klammern.last.character);

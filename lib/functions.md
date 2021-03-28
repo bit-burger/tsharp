@@ -122,6 +122,7 @@ replace(@s,@rng,@s) -> @s
 swap(@s,@int,@int) -> @s
 
 sub(@s,@int,@int)/(@s,@rng) -> @s
+slice(@s)
 cut(@s,@int,@int)/(@s,@rng) -> @s
 
 reverse(@s) -> @s
@@ -131,7 +132,6 @@ reverse(@s) -> @s
 trimLeft(@str) -> @str
 trimRight(@str) -> @str
 trim(@str) -> @str
-sub(@str,@int,@int?) -> @str
 subByLength(@str,@int,@int) -> @str
 
 split(@str,@str)/(@str,@fnc?) -> @arr
@@ -151,6 +151,8 @@ removeFromBack(@str,@int) -> @str
 
 fill(@arr,@int?,@int?) -> @arr
 defill(@arr) -> @arr
+
+combine(@arr) -> @any //combiniert alle mit add
 
 ### @num
 

@@ -1,11 +1,13 @@
 import 'package:meta/meta.dart';
+import 'constants.dart';
 
 @immutable
 abstract class DebugObject {
   final int debugLine;
   final int debugCharacter;
+  final int secondCharacter;
 
-  DebugObject(this.debugLine, this.debugCharacter);
+  DebugObject(this.debugLine, this.debugCharacter,[this.secondCharacter]);
 
 }
 
@@ -14,7 +16,7 @@ abstract class TSException {
 
 
   static String generateErrorShow(String line, int character, [int secondDebugCharacter])
-      => "  " + line + "\n  " + (" " * character) + ("^"*((secondDebugCharacter ?? character) - character)) + "\n";
+      => error_space + line + "\n" + error_space + (" " * character) + ("^"*(((secondDebugCharacter ?? character) + 1) - character)) + "\n";
 
   final String message;
   final int debugLine;

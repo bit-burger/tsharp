@@ -1,6 +1,6 @@
 import 'package:meta/meta.dart';
 
-import '../future_values/values.dart';
+import '../future_values/future_values.dart';
 
 import 'instructions.dart';
 
@@ -26,6 +26,10 @@ class If<Body> extends BodyConditional<Body> {
   If(Body body,FutureValue bool, int debugLine, int debugCharacter) : super(body, bool, debugLine, debugCharacter);
 }
 
+class Guard<Body> extends If {
+  Guard(body, FutureValue bool, int debugLine, int debugCharacter) : super(body, bool, debugLine, debugCharacter);
+
+}
 
 class IfElse<Body,AlternativeBody> extends If<Body> {
   final AlternativeBody alternative;

@@ -5,22 +5,6 @@ import 'package:tsharp/debug.dart';
 
 import 'extensions.dart';
 
-@immutable
-class ParseException extends TSException {
-  ParseException(String message, int debugLine, int debugCharacter, [int secondDebugCharacter])
-      : super(message, debugLine, debugCharacter, secondDebugCharacter);
-}
-
-class UnknownParseException extends ParseException {
-  UnknownParseException(int debugLine, int debugCharacter, [int secondDebugCharacter])
-      : super("Unknown expression. ", debugLine, debugCharacter, secondDebugCharacter);
-}
-
-class CustomParseException extends ParseException {
-  CustomParseException(String message, int line, int character)
-      : super(message, line, character);
-}
-
 
 @immutable
 class Klammer {
@@ -41,24 +25,16 @@ class Token {
   @override
   bool operator ==(Object other) =>
       other is Token &&
-          line == other.line &&
-          character == other.character &&
-          token == other.token;
+      line == other.line &&
+      character == other.character &&
+      token == other.token;
 
   @override
-  String toString() =>
-      token == "" ? "[EMPTY] " : "\"$token\" ($line,$character)" + (clean ? "" : "[NC]");
+  String toString() => token == ""
+      ? "[EMPTY] "
+      : "\"$token\" ($line,$character)" + (clean ? "" : "[NC]");
 }
 
-class ParseDebugStream {
-  void warning(String message, int line, int character) {
-
-  }
-
-  void failure(String message, int line, int character) {
-
-  }
-}
 
 class Operator {
   String operator;
@@ -72,26 +48,29 @@ class Operator {
   static Operator mostImportant(List<Operator> competingOperators) {
     int highestOperator = 0;
     int highestOperatorRanking = operator_precedence_length;
-    _:for(int i = 0; i < competingOperators.length; i++) {
-      for(int o = 0; o < operator_higher_precedence.length; o++) {
-        if(operator_higher_precedence[o].contains(competingOperators[i].operator)) {
-          if(highestOperatorRanking>o) {
+    _:
+    for (int i = 0; i < competingOperators.length; i++) {
+      for (int o = 0; o < operator_higher_precedence.length; o++) {
+        if (operator_higher_precedence[o]
+            .contains(competingOperators[i].operator)) {
+          if (highestOperatorRanking > o) {
             highestOperator = i;
             highestOperatorRanking = o;
           }
           continue _;
         }
       }
-      for(int o = 0; o < operator_lower_precedence.length; o++) {
-        if(operator_lower_precedence[o].contains(competingOperators[i].operator)) {
-          if(highestOperatorRanking>o+3) {
+      for (int o = 0; o < operator_lower_precedence.length; o++) {
+        if (operator_lower_precedence[o]
+            .contains(competingOperators[i].operator)) {
+          if (highestOperatorRanking > o + 3) {
             highestOperator = i;
             highestOperatorRanking = o + 3;
           }
           continue _;
         }
       }
-      if(highestOperatorRanking>operator_higher_precedence.length - 1) {
+      if (highestOperatorRanking > operator_higher_precedence.length - 1) {
         highestOperator = i;
         highestOperatorRanking = operator_higher_precedence.length - 1;
         continue _;
@@ -99,9 +78,6 @@ class Operator {
     }
     return competingOperators[highestOperator];
   }
-  
-
 
   Operator(this.operator, this.begin, this.line, this.character);
 }
-

@@ -52,3 +52,12 @@ extension ContainsWhere<Item> on List<List<Item>> {
     return null;
   }
 }
+
+extension Combine on List<String> {
+  String get combined {
+    String s = "";
+    for(String _s in this)
+      s += _s;
+    return s;
+  }
+}

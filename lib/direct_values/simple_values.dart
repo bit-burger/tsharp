@@ -3,7 +3,7 @@ import 'package:meta/meta.dart';
 import 'package:tsharp/constants.dart' show anonymous_function_name;
 
 import '../instructions/instructions.dart';
-import '../future_values/values.dart';
+import '../future_values/future_values.dart';
 import '../execution/execution.dart';
 import '../execution/root_execution.dart';
 import '../execution/runtime_classes.dart';
@@ -111,7 +111,7 @@ class Fnc extends TSFunction<dynamic> {
     this.line,
     this.character, [
     this.name = anonymous_function_name,
-  ]) : this.instructions = function.instructions,super(location);
+  ]) : this.instructions = function.instructions, super(location);
 
 }
 
