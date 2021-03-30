@@ -1,3 +1,5 @@
+import 'parse_debug.dart';
+
 extension FirstLastList<Element> on List {
   Element get firstNullable {
     return this.length == 0 ? null : this[0];
@@ -44,7 +46,7 @@ extension Containing on String {
 }
 
 extension ContainsWhere<Item> on List<List<Item>> {
-  int containsWhere(Item match) {
+  int? containsWhere(Item match) {
     for(int i = 0; i < this.length; i++)
       for(int j = 0; j < this[i].length; j++)
         if(match == this[i][j])
@@ -53,11 +55,26 @@ extension ContainsWhere<Item> on List<List<Item>> {
   }
 }
 
-extension Combine on List<String> {
-  String get combined {
-    String s = "";
-    for(String _s in this)
-      s += _s;
-    return s;
+// extension Combine on List<String> {
+//   String get combined {
+//     String s = "";
+//     for(String _s in this)
+//       s += _s;
+//     return s;
+//   }
+// }
+
+extension Combine on List<Token> {
+  Token combine() {
+    if(this.length<1) return Token();
+
+    Token token = this.first;
+    for(int i = 1; i < this.length; i++) {
+      if(token.line != this[i].line) break;
+      final split = this[i].token.split("\n");
+      token.token += (" "*(this[i].character! - (token.character! + token.token.length))) + split.first;
+      if(split.length>1) break;
+    }
+    return token;
   }
 }

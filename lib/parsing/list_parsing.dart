@@ -4,21 +4,21 @@ import 'parse_debug.dart' show Klammer;
 
 void parseLists(
     String s,
-    void Function(String s, int line, int character) forEach,
+    void Function(String? s, int line, int character) forEach,
     int line,
     int character) {
   var listItem = "";
   final klammern = <Klammer>[];
   bool wasBackslash = false;
-  int itemLine;
-  int itemCharacter;
+  int? itemLine;
+  int? itemCharacter;
   character -= 1;
   bool onKomma() {
     if (klammern.isEmpty) {
       if (itemLine == null) {
         forEach(null, line, character);
       } else {
-        forEach(listItem.trim(), itemLine, itemCharacter);
+        forEach(listItem.trim(), itemLine!, itemCharacter!);
         itemLine = null;
         itemCharacter = null;
       }

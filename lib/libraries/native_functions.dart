@@ -41,8 +41,8 @@ class NonCheckedNativeFunction<L extends NativeLibraryLocation>
 
 class ParameterLengthCheckedNativeFunction<L extends NativeLibraryLocation>
     extends NativeFunction<L> {
-  final int minParameters; //null means no constraints
-  final int maxParameters; //null means no constraints
+  final int? minParameters; //null means no constraints
+  final int? maxParameters; //null means no constraints
 
   ParameterLengthCheckedNativeFunction(
       this._function, this.minParameters, this.maxParameters, L location)
@@ -58,8 +58,8 @@ class ParameterLengthCheckedNativeFunction<L extends NativeLibraryLocation>
       Execution parentExecution,
       String functionName,
       Stack stack) {
-    if (parameters.length >= minParameters &&
-        parameters.length <= maxParameters)
+    if ((minParameters == null || parameters.length >= minParameters!) &&
+        (maxParameters == null|| parameters.length <= maxParameters!))
       return _function(parameters, rootExecution, firstNonClosureExecution,
           parentExecution, functionName, stack);
     throw RunTimeException(
@@ -69,7 +69,7 @@ class ParameterLengthCheckedNativeFunction<L extends NativeLibraryLocation>
                 : "") +
             (minParameters != null && maxParameters != null ? " and " : " ") +
             (maxParameters != null ? "max only $maxParameters parameters" : ""),
-        null,
+        this.location,
         stack);
   }
 }
@@ -114,13 +114,14 @@ class TwoNumbersNativeFunction extends NativeFunction {
       throw RunTimeException(
           "You cannot give the function \"$functionName\" ${parameters.length} parameters,"
           "as it requires exactly 2 number parameters",
-          null,
+          this.location,
           stack);
     if ((Helper.isType(parameters[0], TSType.int) ||
             Helper.isType(parameters[0], TSType.kom)) &&
         (Helper.isType(parameters[1], TSType.int) ||
             Helper.isType(parameters[1], TSType.kom)))
       return _function(parameters[0], parameters[1], functionName, stack);
+    return _function(0,0,functionName,stack);
   }
 
   TwoNumbersNativeFunction(this._function, NativeLibraryLocation location)

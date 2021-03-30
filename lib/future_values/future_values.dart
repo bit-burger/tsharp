@@ -6,10 +6,10 @@ import '../instructions/instructions.dart';
 
 export 'runtime_values.dart';
 
-export 'compiletime_value.dart';
+export 'compile_time_value.dart';
 
 @immutable
-abstract class FutureValue extends DebugObject {
+abstract class FutureValue extends TextDebugObject {
   FutureValue(int debugLine, int debugCharacter)
       : super(debugLine, debugCharacter);
 }

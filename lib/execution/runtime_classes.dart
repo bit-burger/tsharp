@@ -1,13 +1,15 @@
 import 'package:meta/meta.dart';
 import 'package:tsharp/debug.dart';
 
-class RunTimeException extends TSException {
+class RunTimeException extends TextDebugObject implements Exception {
+
+  final String message;
 
   final Stack stack;
 
-  RunTimeException(String message, DebugObject debugObject, this.stack)
-      : super(message, debugObject.debugLine,
-            debugObject.debugCharacter, null);
+  RunTimeException(this.message, TextDebugObject debugObject, this.stack)
+      : super(debugObject.debugLine,
+            debugObject.debugCharacter, debugObject.secondCharacter);
 }
 
 @immutable

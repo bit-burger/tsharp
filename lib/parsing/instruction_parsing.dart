@@ -1,14 +1,7 @@
-import 'package:tsharp/debug.dart';
 import 'package:tsharp/instructions/instructions.dart';
 import 'parse_debug.dart';
 import 'parse_error_handling.dart';
 
-import 'package:tsharp/constants.dart';
-
-import '../future_values/future_values.dart';
-import '../direct_values/simple_values.dart';
-
-import 'package:tsharp/instructions/instructions.dart';
 // import 'package:flutter/foundation.dart' show compute;
 
 //eine funktion machen die das handeln von string getrennt von kommas vereinfacht
@@ -28,20 +21,20 @@ List<Instruction> parseInstructions(List<List<Token>> tokensListList, ParseDebug
   List<Instruction> instructions = <Instruction>[];
   int i = 0;
   List<Token> getRemainderOfTokensOnLine() {
-    final List<Token> remainderTokens = [tokens[i]];
-    while(i + 1 < newLine.length && !newLine[i + 1]) {
-      remainderTokens.add(tokens[i + 1]);
+    final List<Token> remainderTokens = [];
+    while(i<tokens.length && !newLine[i]) {
+      remainderTokens.add(tokens[i]);
       i++;
     }
+    i--;
+    i--;
     return remainderTokens;
   }
+
   Instruction parse() {
     final extraLength = tokens.length - i;
     switch (tokens[i].token)  {
       case "var":
-
-        //hier VariableDeclaration constructor aufrufen, einzelnen konstructoren suchen nach fehler und machen warnungen
-
       case "let":
 
       case "params":
@@ -58,12 +51,17 @@ List<Instruction> parseInstructions(List<List<Token>> tokensListList, ParseDebug
 
       case "postfix":
 
-    }
 
+
+      //gucken ob clean ist für sachen wie params und SingleFunctionCall zu unterscheidung
+
+    }
+    throw ParseException.single("Instruction could not be parsed", tokens[i].line!, tokens[i].character!);
   }
   for(i; i<tokens.length; i++)
     instructions.add(parse());
 
+  throw 0;
 }
 
 // ' ist kommentar
@@ -71,16 +69,16 @@ List<Instruction> parseInstructions(List<List<Token>> tokensListList, ParseDebug
 
 //BETA
 
-const smallExample = '''
-a = " ölajd aölskdjfj(({)\\\\ aösdlfkj
-
-"
-let func = @Int
-a = isType(<>,@Int
-
-
-
-)''';
+// const smallExample = '''
+// a = " ölajd aölskdjfj(({)\\\\ aösdlfkj
+//
+// "
+// let func = @Int
+// a = isType(<>,@Int
+//
+//
+//
+// )''';
 
 // void main() {
   // parse(smallExample,1,1);

@@ -1,6 +1,8 @@
 import 'package:tsharp/constants.dart';
 import 'package:tsharp/debug.dart';
+
 import 'parse_debug.dart';
+import 'extensions.dart';
 
 enum ParseExceptionImportance {
   ERROR, //Should be put in stream, the instructions are not valid
@@ -46,14 +48,14 @@ extension on StreamEventType {
   }
 }
 
-class ParseExceptionPart extends DebugObject {
+class ParseExceptionPart extends TextDebugObject {
   final String message;
 
   String asErrorLog(List<String> split) {
     return TSException.generateErrorShow(
             split[this.debugLine - 1] + "  [$debugLine:$debugCharacter]",
             this.debugCharacter - 1,
-            this.secondCharacter == null ? null : secondCharacter - 1) +
+            this.secondCharacter == null ? null : secondCharacter! - 1) +
         "\n";
   }
 
@@ -62,7 +64,7 @@ class ParseExceptionPart extends DebugObject {
   }
 
   ParseExceptionPart(this.message, int debugLine, int debugCharacter,
-      [int secondDebugCharacter])
+      [int? secondDebugCharacter])
       : super(debugLine, debugCharacter, secondDebugCharacter);
 
   @override
@@ -70,7 +72,7 @@ class ParseExceptionPart extends DebugObject {
 }
 
 class ParseException implements Exception {
-  final String errorTitle;
+  final String? errorTitle;
   final List<ParseExceptionPart> errors;
   final ParseExceptionImportance importance;
 
@@ -78,7 +80,7 @@ class ParseException implements Exception {
 
   factory ParseException.singleWithExtraString(
       String message, int debugLine, int debugCharacter, String restString,
-      [String referenceString]) {
+      [String? referenceString]) {
     int secondCharacter = restString.length + debugCharacter;
     final int alternativeCharacter =
         (referenceString ?? restString).split("\n").first.length +
@@ -90,11 +92,18 @@ class ParseException implements Exception {
         message, debugLine, debugCharacter, secondCharacter);
   }
 
+  factory ParseException.token(String message, Token token) =>
+      ParseException.single(message, token.line!, token.character!);
+
+  factory ParseException.tokens(String message, List<Token> tokens) =>
+    ParseException.token(message, tokens.combine());
+
+
   factory ParseException.single(
     String message,
     int debugLine,
     int debugCharacter, [
-    int secondDebugCharacter,
+    int? secondDebugCharacter,
     ParseExceptionImportance importance = ParseExceptionImportance.ERROR,
   ]) {
     return ParseException(
@@ -110,11 +119,9 @@ class ParseException implements Exception {
       importance,
     );
   }
-}
 
-class UnknownParseException extends ParseException {
-  factory UnknownParseException(int debugLine, int debugCharacter,
-          [int secondDebugCharacter]) =>
+  factory ParseException.unknown(int debugLine, int debugCharacter,
+      [int? secondDebugCharacter]) =>
       ParseException.single(
         "Unknown expression. ",
         debugLine,
@@ -122,6 +129,8 @@ class UnknownParseException extends ParseException {
         secondDebugCharacter,
       );
 }
+
+
 
 class ParseDebugStream {
   final List<ParseDebugStreamEvent> events;
@@ -138,12 +147,12 @@ class ParseDebugStream {
       events.add(
         ParseDebugStreamEvent(
           (exception as ParseException).errorTitle,
-          (exception as ParseException).errors,
-          (exception as ParseException).importance.toStreamEvents(),
+          exception.errors,
+          exception.importance.toStreamEvents(),
         ),
       );
     } else {
-      exception;
+      throw exception;
     }
   }
 
@@ -152,7 +161,7 @@ class ParseDebugStream {
   }
 
   void tokenWarning(String message, Token token) {
-    warning(message, token.line, token.character);
+    warning(message, token.line!, token.character!);
   }
 
   void error(String message, int line, int character) {
@@ -160,7 +169,7 @@ class ParseDebugStream {
   }
 
   void tokenError(String message, Token token) {
-    error(message, token.line, token.character);
+    error(message, token.line!, token.character!);
   }
 
   void custom(
@@ -184,7 +193,7 @@ class ParseDebugStream {
 class ParseDebugStreamEvent {
   String get errorTitle => _errorTitle ?? errorContent.first.message;
 
-  final String _errorTitle;
+  final String? _errorTitle;
   final List<ParseExceptionPart> errorContent;
   final StreamEventType errorType;
 

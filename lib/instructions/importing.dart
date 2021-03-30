@@ -8,7 +8,7 @@ class Usage extends Instruction {
       : super(debugLine, debugCharacter);
 }
 
-class ImportDeclaration extends SingleDeclaration<PrimitiveValue<String>> {
+class ImportDeclaration extends SingleDeclaration {
   ImportDeclaration(
       String name, FutureValue value, int debugLine, int debugCharacter)
       : super(name, value, debugLine, debugCharacter);

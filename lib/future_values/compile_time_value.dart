@@ -1,8 +1,8 @@
 import 'future_values.dart';
 import 'package:tsharp/instructions/instructions.dart';
 
-abstract class CompiletimeValue extends FutureValue {
-  CompiletimeValue(int debugLine, int debugCharacter) : super(debugLine, debugCharacter);
+abstract class CompileTimeValue extends FutureValue {
+  CompileTimeValue(int debugLine, int debugCharacter) : super(debugLine, debugCharacter);
 
 }
 

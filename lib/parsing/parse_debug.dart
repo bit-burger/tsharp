@@ -16,8 +16,8 @@ class Klammer {
 
 class Token {
   String token;
-  int line;
-  int character;
+  int? line;
+  int? character;
   bool clean;
   Token([this.token = "", this.line, this.character, this.clean = true]);
 
@@ -37,11 +37,11 @@ class Token {
 class Operator {
   String operator;
   final int begin;
-  int end;
+  int? end;
   final int line;
   final int character;
 
-  int get length => end - begin;
+  int get length => end! - begin;
 
   static Operator leastImportant(List<Operator> competingOperators) {
     int highestOperator = 0;

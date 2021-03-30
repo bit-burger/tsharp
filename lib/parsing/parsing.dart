@@ -17,6 +17,7 @@ mixin Parser {
     } catch (error) {
 
     }
+    return <Instruction>[];
 
   }
 }

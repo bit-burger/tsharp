@@ -1,4 +1,5 @@
 import 'package:tsharp/direct_values/simple_values.dart';
+import 'package:tsharp/instructions/instructions.dart';
 
 import '../future_values/future_values.dart';
 
@@ -7,12 +8,13 @@ import 'package:tsharp/constants.dart';
 import 'parse_debug.dart';
 import 'parse_error_handling.dart';
 import 'list_parsing.dart';
-import 'instruction_parsing.dart';
 import 'extensions.dart';
 
 FutureValue parseValueNoTrim(
     String value, int line, int character, ParseDebugStream stream,
     [bool clean = false]) {
+  if(value.trim().isEmpty)
+    throw ParseException.single("Not a real value", line, character);
   final trim = value.trimLeft();
 
   return parseValue(trim.trimRight(), line,
@@ -83,7 +85,7 @@ FutureValue operatorParse(
   int globalCount = -1;
 
   bool wasBackslash = false;
-  Operator operator;
+  Operator? operator;
   final split = (s + " ").split("");
 
   //holt alle operatoren raus
@@ -95,8 +97,8 @@ FutureValue operatorParse(
       if (operator == null) {
         operator = Operator(char, globalCount, line, character);
       } else {
-        operator.operator += char;
-        operator.end = globalCount;
+        operator!.operator += char;
+        operator!.end = globalCount;
       }
       return;
     } else if (char == "\n") {
@@ -127,8 +129,8 @@ FutureValue operatorParse(
       wasBackslash = true;
     }
     if (operator != null) {
-      operator.end = globalCount - 1;
-      operators.add(operator);
+      operator!.end = globalCount - 1;
+      operators.add(operator!);
       operator = null;
     }
   });
@@ -139,10 +141,10 @@ FutureValue operatorParse(
   List<Operator> filteredOperators = operators.where((operator) {
     if (forbidden_operators.contains(operator.operator))
       throw ParseException.single(
-          "Operator \"${operator.operator}\" not allowed", line, character);
+          "Operator \"${operator.operator}\" not allowed", operator.line, operator.character);
     if (ignored_operators.contains(operator.operator)) return false;
     if (operator.begin == 0) {
-      if (split[operator.end + 1] == " ")
+      if (split[operator.end! + 1] == " ")
         throw ParseException.single(
             "No space between the prefix \"${operator.operator}\" and the value \"${s.substring(operator.operator.length).trim()}\" is allowed.",
             operator.line,
@@ -157,7 +159,7 @@ FutureValue operatorParse(
             operator.character - 1);
       return false;
     }
-    return (split[operator.end + 1] == " ") ==
+    return (split[operator.end! + 1] == " ") ==
         (split[operator.begin - 1] == " ");
   }).toList(growable: false);
   if (filteredOperators.isEmpty && operators.length > 0) {
@@ -167,7 +169,7 @@ FutureValue operatorParse(
                 " the operators in question might be: " +
             operators
                 .map((operator) =>
-                    "\"" + s.substring(operator.begin, operator.end + 1) + "\"")
+                    "\"" + s.substring(operator.begin, operator.end! + 1) + "\"")
                 .toList(growable: false)
                 .prettyPrint,
         _line,
@@ -229,9 +231,9 @@ FutureValue operatorParse(
     bool cleanBeforeOperator = true;
     bool cleanAfterOperator = true;
     for (Operator operator in filteredOperators) {
-      if (operator.end < mostImportantOperator.begin)
+      if (operator.end! < mostImportantOperator.begin)
         cleanBeforeOperator = false;
-      else if (operator.begin > mostImportantOperator.end)
+      else if (operator.begin > mostImportantOperator.end!)
         cleanAfterOperator = false;
     }
     final List<FutureValue> values = [];
@@ -248,7 +250,7 @@ FutureValue operatorParse(
     }
     try {
       values.add(parseValueNoTrim(
-        s.substring(mostImportantOperator.end + 1),
+        s.substring(mostImportantOperator.end! + 1),
         mostImportantOperator.line,
         mostImportantOperator.character + 1 + mostImportantOperator.length,
         stream,
@@ -260,7 +262,6 @@ FutureValue operatorParse(
     return OperatorCall(mostImportantOperator.operator, values,
         mostImportantOperator.line, mostImportantOperator.character);
   }
-  assert(false);
 }
 
 //Strings,Arrays,Funktionen, muss nicht getrimmt sein
@@ -277,7 +278,7 @@ FutureValue easyValues(
         parseList(sub, line, character + 1, stream), line, character);
   } else if (s.startsWith("{") && s.endsWith("}"))
     return FutureFunction(
-        /*parseToTokens(s.substring(1,s.length - 1),line,character + 1)*/ null,
+        /*parseToTokens(s.substring(1,s.length - 1),line,character + 1)*/ <Instruction>[],
         line,
         character);
   else if (s.endsWith(")")) if (s.startsWith("("))
@@ -353,7 +354,7 @@ FunctionCall functionCall(
       wasBackslash = true;
     }
   }
-  throw UnknownParseException(_line, _character);
+  throw ParseException.unknown(_line, _character);
 }
 
 String realString(String s, int line, int character) {
@@ -364,7 +365,7 @@ String realString(String s, int line, int character) {
     character++;
     if (backslash) {
       if (backslashable_characters[s[i]] != null) {
-        realString += backslashable_characters[s[i]];
+        realString += backslashable_characters[s[i]]!;
         backslash = false;
       } else
         throw ParseException.single(
@@ -398,10 +399,14 @@ List<FutureValue> parseList(
   final List<FutureValue> values = <FutureValue>[];
   if (s.length == 1) return values;
   parseLists(s, (_s, line, character) {
-    try {
-      values.add(parseValue(_s, line, character, stream));
-    } catch (e) {
-      stream.processException(e);
+    if(_s == null) {
+      values.add(PrimitiveValue(SpecialValues.absent, line, character));
+    } else {
+      try {
+        values.add(parseValue(_s, line, character, stream));
+      } catch (e) {
+        stream.processException(e);
+      }
     }
   }, line, character);
   return values;

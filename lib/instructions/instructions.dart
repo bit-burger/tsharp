@@ -8,7 +8,7 @@ export 'scope_manipulation.dart';
 export 'variable_use.dart';
 
 @immutable
-abstract class Instruction extends DebugObject {
+abstract class Instruction extends TextDebugObject {
   Instruction(int debugLine, int debugCharacter) : super(debugLine, debugCharacter);
 
 }
