@@ -107,18 +107,19 @@ FutureValue operatorParse(
     } else if (char == "\"") {
       if (!wasBackslash) {
         if (klammern.isEmpty || klammern.last.klammer != "\"")
-          klammern.add(Klammer(char, character, line));
+          klammern.add(Klammer(char, line, character));
         else if (klammern.last.klammer == "\"") klammern.removeLast();
       }
     } else if (char == "{" || char == "(" || char == "[") {
       if (klammern.isEmpty || klammern.last.klammer != "\"")
-        klammern.add(Klammer(char, character, line));
+        klammern.add(Klammer(char, line, character));
     } else if (char == "}" || char == ")" || char == "]") {
       if (klammern.isNotEmpty && klammern.last.klammer == "\"")
         ;
       else if ((klammern.last.klammer == "{" && char == "}") ||
           (klammern.last.klammer == "(" && char == ")") ||
-          (klammern.last.klammer == "[" && char == "]")) klammern.removeLast();
+          (klammern.last.klammer == "[" && char == "]"))
+        klammern.removeLast();
     }
     if (wasBackslash) {
       wasBackslash = false;
@@ -135,7 +136,7 @@ FutureValue operatorParse(
   if (operators.isEmpty) return easyValues(s, _line, _character, stream);
   // Guckt ob die operatoren alle a+b oder a + b sind und nicht a+ b (das wäre prefix)
   //throwt bei forbidden_operators (=) und bei ignoriert ignorierte (.)
-  final filteredOperators = operators.where((operator) {
+  List<Operator> filteredOperators = operators.where((operator) {
     if (forbidden_operators.contains(operator.operator))
       throw ParseException.single(
           "Operator \"${operator.operator}\" not allowed", line, character);
@@ -213,27 +214,34 @@ FutureValue operatorParse(
           operators.first.line,
           operators.first.character);
     }
-    throw ParseException.singleWithExtraString("To values next to eachother have to either be:\n"
+    throw ParseException.singleWithExtraString(
+        "To values next to eachother have to either be:\n"
         "  - Separated by a komma in an array, or parameter list\n"
-        "  - Separated by an operator (not prefix or postfix)\n", _line, _character, s);
+        "  - Separated by an operator (not prefix or postfix)",
+        _line,
+        _character,
+        s);
   } else {
-    final mostImportantOperator = Operator.mostImportant(filteredOperators);
-    operators.where((element) => element != mostImportantOperator);
-    bool before = false;
-    bool after = false;
-    for (Operator operator in operators) {
+    final mostImportantOperator = Operator.leastImportant(filteredOperators);
+    filteredOperators = filteredOperators
+        .where((element) => element != mostImportantOperator)
+        .toList(growable: false);
+    bool cleanBeforeOperator = true;
+    bool cleanAfterOperator = true;
+    for (Operator operator in filteredOperators) {
       if (operator.end < mostImportantOperator.begin)
-        before = true;
-      else if (operator.begin > mostImportantOperator.end) after = true;
+        cleanBeforeOperator = false;
+      else if (operator.begin > mostImportantOperator.end)
+        cleanAfterOperator = false;
     }
-    final values = [];
+    final List<FutureValue> values = [];
     try {
       values.add(parseValueNoTrim(
         s.substring(0, mostImportantOperator.begin),
         _line,
         _character,
         stream,
-        before,
+        cleanBeforeOperator,
       ));
     } catch (error) {
       stream.processException(error);
@@ -244,7 +252,7 @@ FutureValue operatorParse(
         mostImportantOperator.line,
         mostImportantOperator.character + 1 + mostImportantOperator.length,
         stream,
-        after,
+        cleanAfterOperator,
       ));
     } catch (error) {
       stream.processException(error);
@@ -265,7 +273,8 @@ FutureValue easyValues(
         character);
   else if (s.startsWith("[") && s.endsWith("]")) {
     final sub = s.substring(1, s.length - 1);
-    return FutureArray(parseList(sub, line, character + 1, stream), line, character);
+    return FutureArray(
+        parseList(sub, line, character + 1, stream), line, character);
   } else if (s.startsWith("{") && s.endsWith("}"))
     return FutureFunction(
         /*parseToTokens(s.substring(1,s.length - 1),line,character + 1)*/ null,
@@ -278,16 +287,16 @@ FutureValue easyValues(
     return functionCall(s, line, character, stream);
   }
   //funktions call parsen
-  throw ParseException.single(
+  throw ParseException.singleWithExtraString(
     "This cannot be parsed as a value for an unknown reason, possible reasons are:\n"
     "  - A reserved word was used as an identifier or in a wrong context (before line, after the line, on the line)\n"
     "  - A operator is missing\n"
     "  - A operator is written as a prefix or postfix, "
     "to fix this insert at least one space on both ends or remove all space on bot ends\n"
-    "  - You tried to reference a variable, constant, type, or record but not all characters were one of \"$allowed_characters_for_identifiers\"\n",
+    "  - You tried to reference a variable, constant, type, or record but not all characters were one of \"$allowed_characters_for_identifiers\"",
     line,
     character,
-    character + s.split("\n").first.length,
+    s,
   );
 }
 
@@ -309,7 +318,7 @@ FunctionCall functionCall(
     } else if (char == "\"") {
       if (!wasBackslash) {
         if (klammern.isEmpty || klammern.last.klammer != "\"")
-          klammern.add(Klammer(char, character, line));
+          klammern.add(Klammer(char, line, character));
         else if (klammern.last.klammer == "\"") klammern.removeLast();
       }
     } else if (char == "(") {
@@ -318,7 +327,7 @@ FunctionCall functionCall(
           throw ParseException.single(
               "Cannot use a space, between the method and the method parameters",
               line,
-              character);
+              character - 1);
         }
         final sub = s.substring(globalCharacter + 1, s.length - 1);
         final val = parseValue(
@@ -326,11 +335,11 @@ FunctionCall functionCall(
         return FunctionCall(val, parseList(sub, line, character + 1, stream),
             _line, _character);
       } else if (klammern.last.klammer != "\"") {
-        klammern.add(Klammer("(", character, line));
+        klammern.add(Klammer("(", line, character));
       }
     } else if (char == "{" || char == "[" || char == "(") {
       if (klammern.isEmpty || klammern.last.klammer != "\"")
-        klammern.add(Klammer(char, character, line));
+        klammern.add(Klammer(char, line, character));
     } else if (char == "}" || char == ")" || char == "]") {
       if (klammern.isNotEmpty && klammern.last.klammer == "\"")
         ;
@@ -366,6 +375,12 @@ String realString(String s, int line, int character) {
     } else if (s[i] == "\\") {
       backslash = true;
       continue;
+    } else if (s[i] == "\"") {
+      throw ParseException.single(
+          "To concatenate two strings use the \"+\" operator "
+          "or the add function. ",
+          line,
+          character);
     } else {
       realString += s[i];
     }
@@ -381,8 +396,7 @@ String realString(String s, int line, int character) {
 List<FutureValue> parseList(
     String s, int line, int character, ParseDebugStream stream) {
   final List<FutureValue> values = <FutureValue>[];
-  if(s.length==1)
-    return values;
+  if (s.length == 1) return values;
   parseLists(s, (_s, line, character) {
     try {
       values.add(parseValue(_s, line, character, stream));

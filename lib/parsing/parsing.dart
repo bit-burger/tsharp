@@ -4,7 +4,7 @@ import 'parse_error_handling.dart';
 
 mixin Parser {
 
-  void parseError(String completeError, List<StreamEvent> events, StreamEventType worstEventType, bool stopsExecution) {
+  void parseError(String completeError, List<ParseDebugStreamEvent> events, StreamEventType worstEventType, bool stopsExecution) {
 
   }
 

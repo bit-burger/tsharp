@@ -63,28 +63,30 @@ const Map<String, String> brackets = {
   "[": "]",
 };
 
-const String backslashable_characters_as_string = "\\n, \\\\, \\\"";
+const String backslashable_characters_as_string = "\"\\n\", \"\\\\\", \"\\\"\""; //"\n", "\\", "\""
 
 const Set<String> forbidden_operators = {"=", "+=", "-=", "*=", "/="};
 
 const Set<String> ignored_operators = {"."};
 
 //anstatt List<List<String>>, List<Set<String>>
-const List<Set<String>> operator_higher_precedence = [
-  {";", ".", "...", "..<"},
-  {":", "::", ":?", ":??"},
+const List<Set<String>> operator_higher_precedence= [
+  {"&&"},
+  {"||", "|"},
+  {"??", "?"},
+  {"<", ">", "<=", ">=", "==", "===", "===="},
+  {"<>", "><"},
+  {"+", "-"},
+  {"*", "/", "//", "~/"},
+  {"%", "^"},
 ];
 
-const List<Set<String>> operator_lower_precedence = [
-  {"%", "^"},
-  {"*", "/", "//", "~/"},
-  {"+", "-"},
-  {"<>", "><"},
-  {"<", ">", "<=", ">=", "==", "===", "===="},
-  {"??", "?"},
-  {"||", "|"},
-  {"&&"},
+const List<Set<String>> operator_lower_precedence  = [
+  {":", "::", ":?", ":??"},
+  {";", ".", "...", "..<"},
 ];
+
+
 
 final operator_precedence_length =
     operator_lower_precedence.length + operator_higher_precedence.length + 1;

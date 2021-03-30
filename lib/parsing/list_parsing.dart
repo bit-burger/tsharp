@@ -41,12 +41,12 @@ void parseLists(
     } else if (char == "\"") {
       if (!wasBackslash) {
         if (klammern.isEmpty||klammern.last.klammer!="\"")
-          klammern.add(Klammer(char, character, line));
+          klammern.add(Klammer(char, line, character));
         else if (klammern.last.klammer == "\"") klammern.removeLast();
       }
     } else if (char == "{" || char == "(" || char == "[") {
       if (klammern.isEmpty || klammern.last.klammer != "\"")
-        klammern.add(Klammer(char, character, line));
+        klammern.add(Klammer(char, line, character));
     } else if (char == "}" || char == ")" || char == "]") {
       if (klammern.isNotEmpty && klammern.last.klammer == "\"")
         ;

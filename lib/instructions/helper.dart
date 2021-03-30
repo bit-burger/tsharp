@@ -7,6 +7,8 @@ import 'package:tsharp/parsing/extensions.dart';
 import 'package:tsharp/parsing/value_parsing.dart';
 import 'package:tsharp/parsing/parse_error_handling.dart';
 import 'package:tsharp/direct_values/direct_values.dart';
+import 'package:tsharp/constants.dart';
+import 'package:tsharp/parsing/extensions.dart';
 
 bool isValidVariableName(String s) =>
     !(keywords.contains(s) && standart_values.contains(s));
@@ -16,6 +18,11 @@ bool isPureClosure(Token token) =>
 
 bool isPureArray(Token token) =>
     token.token[0] == "[" && token.token[0] == "]" && token.clean;
+
+bool validIdentifierName(String name) =>
+    !keywords.contains(name) &&
+    !standart_values.contains(name) &&
+    allowed_characters_for_identifiers.containsOneOf(name);
 
 List<MultipleVariableOrConstantDeclarationVariable> parseVariableLists(
     String identifiers, int line, int character, ParseDebugStream stream) {
@@ -85,7 +92,6 @@ List<MultipleVariableOrConstantDeclarationVariable> parseVariableLists(
       } else {
         if (char != " ") {
           defaultValue = parseValue(s.substring(i), line, character, stream);
-          print("");
           break;
         }
       }
@@ -99,7 +105,8 @@ List<MultipleVariableOrConstantDeclarationVariable> parseVariableLists(
       throw ParseException.single(
           "After a \"=\" a default value is expected. ", line, character);
     if (identifier.length == 0)
-      throw ParseException.single("There has to be an identifier. ", line, character);
+      throw ParseException.single(
+          "There has to be an identifier. ", line, character);
     if (identifier == "_") identifier = null;
     if (defaultValue == null)
       defaultValue = PrimitiveValue(SpecialValues.absent, line, character);

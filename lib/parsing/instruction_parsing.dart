@@ -8,18 +8,11 @@ import 'package:tsharp/constants.dart';
 import '../future_values/future_values.dart';
 import '../direct_values/simple_values.dart';
 
-import 'parse_debug.dart';
-import 'extensions.dart';
-import 'list_parsing.dart';
-import 'value_parsing.dart';
-
 import 'package:tsharp/instructions/instructions.dart';
-import 'package:tsharp/instructions/conditionals_and_loops.dart';
 // import 'package:flutter/foundation.dart' show compute;
 
 //eine funktion machen die das handeln von string getrennt von kommas vereinfacht
 // klammern müssen dabei beachtet werden, bsp. a = [1,{ }, 23]; b =
-
 
 
 List<Instruction> parseInstructions(List<List<Token>> tokensListList, ParseDebugStream stream) {
@@ -34,10 +27,19 @@ List<Instruction> parseInstructions(List<List<Token>> tokensListList, ParseDebug
 
   List<Instruction> instructions = <Instruction>[];
   int i = 0;
+  List<Token> getRemainderOfTokensOnLine() {
+    final List<Token> remainderTokens = [tokens[i]];
+    while(i + 1 < newLine.length && !newLine[i + 1]) {
+      remainderTokens.add(tokens[i + 1]);
+      i++;
+    }
+    return remainderTokens;
+  }
   Instruction parse() {
     final extraLength = tokens.length - i;
     switch (tokens[i].token)  {
       case "var":
+
         //hier VariableDeclaration constructor aufrufen, einzelnen konstructoren suchen nach fehler und machen warnungen
 
       case "let":
@@ -45,7 +47,17 @@ List<Instruction> parseInstructions(List<List<Token>> tokensListList, ParseDebug
       case "params":
 
       case "define":
-        return null;
+
+      case "event":
+
+      case "record":
+
+      case "operator":
+
+      case "prefix":
+
+      case "postfix":
+
     }
 
   }

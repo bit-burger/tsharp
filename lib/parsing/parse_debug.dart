@@ -5,22 +5,21 @@ import 'package:tsharp/debug.dart';
 
 import 'extensions.dart';
 
-
 @immutable
 class Klammer {
   final String klammer;
   final int character;
   final int line;
 
-  Klammer(this.klammer, this.character, this.line);
+  Klammer(this.klammer, this.line, this.character);
 }
 
 class Token {
   String token;
   int line;
   int character;
-  bool clean = true;
-  Token([this.token = "", this.line, this.character]);
+  bool clean;
+  Token([this.token = "", this.line, this.character, this.clean = true]);
 
   @override
   bool operator ==(Object other) =>
@@ -35,7 +34,6 @@ class Token {
       : "\"$token\" ($line,$character)" + (clean ? "" : "[NC]");
 }
 
-
 class Operator {
   String operator;
   final int begin;
@@ -45,7 +43,7 @@ class Operator {
 
   int get length => end - begin;
 
-  static Operator mostImportant(List<Operator> competingOperators) {
+  static Operator leastImportant(List<Operator> competingOperators) {
     int highestOperator = 0;
     int highestOperatorRanking = operator_precedence_length;
     _:

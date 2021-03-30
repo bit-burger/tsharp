@@ -3,9 +3,8 @@ import 'package:tsharp/constants.dart';
 import 'parse_debug.dart';
 import 'parse_error_handling.dart';
 
-
-
-List<List<Token>> parseToTokens(String s, int line, int character, ParseDebugStream stream) {
+List<List<Token>> parseToTokens(
+    String s, int line, int character, ParseDebugStream stream) {
   final List<List<Token>> tokens = <List<Token>>[
     [Token()]
   ];
@@ -21,9 +20,18 @@ List<List<Token>> parseToTokens(String s, int line, int character, ParseDebugStr
     if (klammern.isNotEmpty) {
       if (char == "\\") {
         if (klammern.last.character != "\"")
-          throw Exception();
+          throw ParseException.single(
+            "You can only use backslashes inside of a string",
+            line,
+            character,
+          );
         else if (backslashable_characters[split[i + 1]] != null)
-          throw Exception();
+          throw ParseException.single(
+            "You can only backslash the characters: " +
+                backslashable_characters_as_string,
+            line,
+            character,
+          );
       } else if (char == "\n") {
         line++;
         character = 0;
@@ -43,20 +51,39 @@ List<List<Token>> parseToTokens(String s, int line, int character, ParseDebugStr
           }
           klammern.removeLast();
         } else
-          throw Exception();
+          throw ParseException(
+            "Opening \"${klammern.last.klammer}\" not matching closing bracket \"$char\". ",
+            [
+              ParseExceptionPart(
+                "Opening bracket: ",
+                klammern.last.line,
+                klammern.last.character,
+              ),
+              ParseExceptionPart(
+                "Closing bracket: ",
+                line,
+                character,
+              ),
+            ],
+            ParseExceptionImportance.EXCEPTION,
+          );
       } else if (i == split.length - 1) {
         //wenn der letzte char in einer klammmer ist gibt es eh einen fehler
         // und man möchte keinen internen fehler (wenn man auf split[i + 1] zugreift)
         continue;
       } else if (char == "\"") {
         if (klammern.last.klammer != "\"")
-          throw Exception();
-        else if (split[i - 1] != "\\") split.removeLast();
+          klammern.add(Klammer("\"", line, character));
+        else if (split[i - 1] != "\\") klammern.removeLast();
       }
       tokens.last.last.token += char;
     } else {
       if (char == "\\") {
-        throw Exception();
+        throw ParseException.single(
+          "You can only use backslashes inside of a string",
+          line,
+          character,
+        );
       } else if (char == "'") {
         while (i != "\n") i++;
       } else if (char == "\n") {
@@ -66,9 +93,15 @@ List<List<Token>> parseToTokens(String s, int line, int character, ParseDebugStr
         character = 0;
         continue parsing;
       } else if (char == "(" || char == "{" || char == "[" || char == "\"") {
-        if (extendable.contains(tokens.last.last.token))
+        if (extendable.contains(tokens.last.last.token) ||
+            (char == "{" &&
+                tokens.last.last.token.isNotEmpty &&
+                tokens.last.last.token[tokens.last.last.token.length - 1] !=
+                    " " &&
+                !allowed_characters_for_operators.contains(
+                    tokens.last.last.token[tokens.last.last.token.length - 1])))
           tokens.last.add(Token());
-        klammern.add(Klammer(char, character, line));
+        klammern.add(Klammer(char, line, character));
       } else if (char == " ") {
         if (tokens.last.last.token.isNotEmpty) {
           int j = i + 1;
@@ -99,7 +132,7 @@ List<List<Token>> parseToTokens(String s, int line, int character, ParseDebugStr
             tokens.last.last.clean = false;
             tokens.last.last.token += s.substring(i, b);
             //i und character wird später noch eins plus gemacht (wegen der for-schleife) und character++;
-            character += i - b;
+            character += b - i - 1;
             i = b - 1;
           }
         }
@@ -113,18 +146,22 @@ List<List<Token>> parseToTokens(String s, int line, int character, ParseDebugStr
       tokens.last.last.token += char;
     }
   }
-  for (List<Token> tokenList in tokens) {
-
-  }
+  if(tokens.last.length==1&&tokens.last[0].token.isEmpty) tokens.removeLast();
   if (klammern.isNotEmpty) {
     if (klammern.last.klammer == "\"")
-      throw ParseException.single("A string needs to be closed", klammern.last.line,
-          klammern.last.character);
+      throw ParseException.single(
+          "A string needs to be closed",
+          klammern.last.line,
+          klammern.last.character,
+          null,
+          ParseExceptionImportance.EXCEPTION);
     else
       throw ParseException.single(
           "Bracket \"${klammern.last.klammer}\" is unnecessary and was not closed",
           klammern.last.line,
-          klammern.last.character);
+          klammern.last.character,
+          null,
+          ParseExceptionImportance.EXCEPTION);
   }
   return tokens;
 }

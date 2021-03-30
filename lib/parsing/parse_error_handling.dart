@@ -44,7 +44,6 @@ extension on StreamEventType {
         return "SYSTEM_ERROR";
     }
   }
-
 }
 
 class ParseExceptionPart extends DebugObject {
@@ -52,7 +51,9 @@ class ParseExceptionPart extends DebugObject {
 
   String asErrorLog(List<String> split) {
     return TSException.generateErrorShow(
-            split[this.debugLine - 1] + "  [$debugLine:$debugCharacter]", this.debugCharacter - 1, this.secondCharacter ?? this.debugCharacter - 1) +
+            split[this.debugLine - 1] + "  [$debugLine:$debugCharacter]",
+            this.debugCharacter - 1,
+            this.secondCharacter == null ? null : secondCharacter - 1) +
         "\n";
   }
 
@@ -63,6 +64,9 @@ class ParseExceptionPart extends DebugObject {
   ParseExceptionPart(this.message, int debugLine, int debugCharacter,
       [int secondDebugCharacter])
       : super(debugLine, debugCharacter, secondDebugCharacter);
+
+  @override
+  bool operator ==(Object other) => other is ParseExceptionPart && other.message == this.message && super==(other);
 }
 
 class ParseException implements Exception {
@@ -73,17 +77,17 @@ class ParseException implements Exception {
   ParseException(this.errorTitle, this.errors, this.importance);
 
   factory ParseException.singleWithExtraString(
-      String message,
-      int debugLine,
-      int debugCharacter,
-      String restString,
-      [String referenceString]
-      ) {
+      String message, int debugLine, int debugCharacter, String restString,
+      [String referenceString]) {
     int secondCharacter = restString.length + debugCharacter;
-    final int alternativeCharacter = (referenceString ?? restString).split("\n").first.length + debugCharacter;
-    if(alternativeCharacter < secondCharacter)
+    final int alternativeCharacter =
+        (referenceString ?? restString).split("\n").first.length +
+            debugCharacter -
+            1;
+    if (alternativeCharacter < secondCharacter)
       secondCharacter = alternativeCharacter;
-    return ParseException.single(message, debugLine, debugCharacter, secondCharacter);
+    return ParseException.single(
+        message, debugLine, debugCharacter, secondCharacter);
   }
 
   factory ParseException.single(
@@ -106,7 +110,6 @@ class ParseException implements Exception {
       importance,
     );
   }
-
 }
 
 class UnknownParseException extends ParseException {
@@ -121,19 +124,19 @@ class UnknownParseException extends ParseException {
 }
 
 class ParseDebugStream {
-  final List<StreamEvent> events;
+  final List<ParseDebugStreamEvent> events;
 
-  ParseDebugStream() : this.events = <StreamEvent>[];
+  ParseDebugStream() : this.events = <ParseDebugStreamEvent>[];
 
-  bool canEvaluateExceptionDirectly(Exception exception) =>
+  bool canEvaluateExceptionDirectly(var exception) =>
       exception is ParseException &&
       (exception.importance == ParseExceptionImportance.INSTRUCTION_ERROR ||
           exception.importance == ParseExceptionImportance.ERROR);
 
-  void processException(Exception exception) {
+  void processException(var exception) {
     if (canEvaluateExceptionDirectly(exception)) {
       events.add(
-        StreamEvent(
+        ParseDebugStreamEvent(
           (exception as ParseException).errorTitle,
           (exception as ParseException).errors,
           (exception as ParseException).importance.toStreamEvents(),
@@ -162,7 +165,7 @@ class ParseDebugStream {
 
   void custom(
       String message, int line, int character, StreamEventType eventType) {
-    events.add(StreamEvent(
+    events.add(ParseDebugStreamEvent(
         null, [ParseExceptionPart(message, line, character)], eventType));
   }
 
@@ -178,20 +181,23 @@ class ParseDebugStream {
   }
 }
 
-class StreamEvent {
+class ParseDebugStreamEvent {
   String get errorTitle => _errorTitle ?? errorContent.first.message;
 
   final String _errorTitle;
   final List<ParseExceptionPart> errorContent;
   final StreamEventType errorType;
 
-  StreamEvent(this._errorTitle, this.errorContent, this.errorType)
+  ParseDebugStreamEvent(this._errorTitle, this.errorContent, this.errorType)
       : assert(errorContent.length > 0),
         assert(errorContent.length == 2 || _errorTitle == null);
 
   String asErrorLog(dynamic l, List<String> split) {
     String baseString = l.toString() +
-        ":${errorContent[0].debugLine}:${errorContent[0].debugCharacter}:${errorType.stringRepresentation()}: $errorTitle:\n";
+        ":${errorContent[0].debugLine}:"
+            "${errorContent[0].debugCharacter}:"
+            "${errorType.stringRepresentation()}: "
+            "$errorTitle${errorTitle.contains("\n") ? "\n" : ":"}\n";
     if (_errorTitle == null) {
       baseString += errorContent.first.asErrorLog(split) + "\n";
     } else {
@@ -202,4 +208,11 @@ class StreamEvent {
     baseString += "\n";
     return baseString;
   }
+
+  @override
+  bool operator ==(Object other) =>
+      other is ParseDebugStreamEvent &&
+      other.errorTitle == this.errorTitle &&
+      other.errorType == this.errorType &&
+      other.errorContent == this.errorContent;
 }
