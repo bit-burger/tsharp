@@ -1,6 +1,13 @@
+import 'dart:mirrors' show InstanceMirror;
+import 'dart:mirrors' as Mirror show reflect;
+
 import 'package:test/test.dart';
+
 import 'package:tsharp/future_values/future_values.dart';
 import 'package:tsharp/direct_values/direct_values.dart';
+import 'package:tsharp/instructions/helper.dart';
+import 'package:tsharp/instructions/instructions.dart';
+import 'package:tsharp/parsing/instruction_parsing.dart';
 import 'package:tsharp/parsing/parse_error_handling.dart';
 
 import 'package:tsharp/parsing/value_parsing.dart';
@@ -14,6 +21,21 @@ class O extends Operator {
 }
 
 ParseDebugStream ns = ParseDebugStream();
+
+// void mirrorMatch(Object actual, Object expectation) {
+//   bool isMatch = (){
+//     if(actual.runtimeType!=expectation.runtimeType)
+//       return false;
+//     InstanceMirror _actual = Mirror.reflect(actual);
+//     InstanceMirror _expectation = Mirror.reflect(expectation);
+//     if(!_actual.hasReflectee||!_expectation.hasReflectee)
+//       return false;
+//     return true;
+//   }();
+//   if(!isMatch) {
+//
+//   }
+// }
 
 void main() {
   group("Simple value parsing", () {
@@ -159,7 +181,7 @@ void main() {
   });
 
   test("instruction grouping", () {
-    final parseTestString = """
+    const parseTestString = """
         var    adfgfd    **=  else{\n}\nkdjs""";
 
     final List<List<Token>> parseResult =
@@ -168,6 +190,48 @@ void main() {
     for (List<Token> tokenList in parseResult) tokens.addAll(tokenList);
     final combineResult = tokens.combine();
     // print(combineResult.token);
+  });
+  group("Instruction parsing", (){
+    test("Basic instruction parsing", (){
+      final stream = ParseDebugStream();
+      const string = "var [\n"
+          "a... = [234 + 2345, 23475]\n"
+          "\n"
+          "\n"
+          "] = b\n"
+          "  define @saa = @aaa + @abc\n"
+          "let b = a\n"
+          "record #c = b\n"
+          "operator ***** = []\n"
+          "params [a,b,c]"
+          "\n"
+          "\n"
+          "\n";
+
+      final split = string.split("\n");
+      List<List<Token>>? tokens;
+      List<Instruction>? instructions;
+      try {
+        tokens = parseToTokens(string, 1, 1, stream);
+        instructions = parseInstructions(tokens, stream);
+      } catch(e) {
+        stream.processException(e, catchEverything: true);
+      }
+      print(stream.asErrorLog("[ERROR LOG]", split));
+      print(instructions);
+    });
+
+    test("Type checking", () {
+      final listValue = FutureArray([],1,1);
+      expect(isCorrectCompileTimeType<FutureValue>(listValue), true);
+
+      final functionValue = parseValue("function", 1, 1, ns);
+      expect(isCorrectCompileTimeType<int>(functionValue), false);
+
+      final primitiveValue = PrimitiveValue(2345, 1, 1);
+      expect(isCorrectCompileTimeType<int>(primitiveValue), true);
+    });
+
   });
 
   group("Test the stream that should not be used", () {

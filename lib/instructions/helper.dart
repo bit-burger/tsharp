@@ -7,16 +7,35 @@ import 'package:tsharp/parsing/extensions.dart';
 import 'package:tsharp/parsing/value_parsing.dart';
 import 'package:tsharp/parsing/parse_error_handling.dart';
 import 'package:tsharp/direct_values/direct_values.dart';
+import 'declarations.dart' show DeclarationChecks;
 
 bool isPureClosure(Token token) =>
-    token.token[0] == "{" && token.token[0] == "}" && token.clean;
+    token.token[0] == "{" &&
+    token.token[token.token.length - 1] == "}" &&
+    token.clean;
 
-bool isPureArray(Token token) =>
-    token.token[0] == "[" && token.token[0] == "]" && token.clean;
+bool isSomeList(Token token) =>
+    token.token[0] == "[" && token.token[token.token.length - 1] == "]";
 
-bool isCorrectPrimitiveType<T>(FutureValue v) => v is! PrimitiveValue || v.value is T;
+bool isCorrectCompileTimeType<T>(FutureValue v) =>
+    v is RunTimeValue || v is T || (v is PrimitiveValue && v.value is T);
+
+extension RemoveFirstOfIdentifier on List<Token> {
+  List<Token> removeFirstOfIdentifier() {
+    assert(this.length == 4);
+    this[1].token = this[1].token.substring(1);
+    return this;
+  }
+}
+
+FutureValue parseValueOfToken(Token token, ParseDebugStream stream) =>
+    parseValue(token.token, token.line!, token.character!, stream, token.clean);
 
 List<MultipleVariableOrConstantDeclarationVariable> parseVariableLists(
+    String identifiers, int line, int character, ParseDebugStream stream) =>
+_parseVariableLists(identifiers.substring(1,identifiers.length - 1), line, character + 1, stream);
+
+List<MultipleVariableOrConstantDeclarationVariable> _parseVariableLists(
     String identifiers, int line, int character, ParseDebugStream stream) {
   final List<MultipleVariableOrConstantDeclarationVariable> variables = [];
   parseLists(identifiers, (s, _line, _character) {
@@ -41,7 +60,7 @@ List<MultipleVariableOrConstantDeclarationVariable> parseVariableLists(
         if (char.containsOneOf(allowed_characters_for_identifiers)) {
           if (points > 0)
             throw ParseException.single(
-                "After the points, you cannot continue with the identifier name. ",
+                "After the points, you cannot continue with the identifier name",
                 line,
                 character);
           identifier = identifier! + char;
@@ -94,12 +113,19 @@ List<MultipleVariableOrConstantDeclarationVariable> parseVariableLists(
         character++;
     }
     if (system == 2 && defaultValue == null)
-      throw ParseException.single(
-          "After a \"=\" a default value is expected. ", line, _character, character);
+      throw ParseException.single("After a \"=\" a default value is expected",
+          line, _character, character);
     if (identifier!.length == 0)
       throw ParseException.single(
-          "There has to be an identifier. ", line, _character);
+          "There has to be an identifier", line, _character);
     if (identifier == "_") identifier = null;
+    if (identifier != null) if ((keywords.contains(identifier) ||
+        standart_values.contains(identifier)))
+      throw ParseException.singleWithExtraString(
+          "Identifier cannot be named after a reserved word",
+          _line,
+          _character,
+          identifier);
     if (defaultValue == null)
       defaultValue = PrimitiveValue(SpecialValues.absent, line, character);
     if (points == 3) {

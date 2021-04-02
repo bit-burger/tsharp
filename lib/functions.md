@@ -20,6 +20,8 @@
 # Functions
 
 equal(@any,@any) -> @bol ==
+equal_to_one_of(@any,@arr) ;=
+equal_to_same(@arr,@any) =;
 unequal(@any,@any) -> @bol !=
 missing(@any) -> @bol ? (pre)
 
@@ -153,6 +155,7 @@ fill(@arr,@int?,@int?) -> @arr
 defill(@arr) -> @arr
 
 combine(@arr) -> @any //combiniert alle mit add
+fold(@arr, @any, @fnc) -> @any
 
 ### @num
 

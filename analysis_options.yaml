@@ -1,3 +1,4 @@
 analyzer:
   exclude:
     - binary/*.dart
+    - lib/parsing/old.dart

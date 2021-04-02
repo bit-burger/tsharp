@@ -35,6 +35,8 @@ List<List<Token>> parseToTokens(
       } else if (char == "\n") {
         line++;
         character = 0;
+      } else if((char == "{" || char == "(" || char == "[") && klammern.last != "\"") {
+        klammern.add(Klammer(char,line,character));
       } else if (char == ")" || char == "}" || char == "]") {
         if (brackets[klammern.last.klammer] == char) {
           if (klammern.length == 1 &&
@@ -52,7 +54,7 @@ List<List<Token>> parseToTokens(
           klammern.removeLast();
         } else
           throw ParseException(
-            "Opening \"${klammern.last.klammer}\" not matching closing bracket \"$char\". ",
+            "Opening \"${klammern.last.klammer}\" not matching closing bracket \"$char\": ",
             [
               ParseExceptionPart(
                 "Opening bracket: ",
@@ -103,7 +105,11 @@ List<List<Token>> parseToTokens(
           tokens.last.add(Token());
         klammern.add(Klammer(char, line, character));
       } else if (char == " ") {
-        if (tokens.last.last.token.isNotEmpty) {
+        if (tokens.last.last.token.isNotEmpty ) {
+          if(ignored_by_operator_grouping.contains(tokens.last.last.token)) {
+            tokens.last.add(Token());
+            continue parsing;
+          }
           int j = i + 1;
           while (j < split.length && split[j] == " ") j++;
           var operator = "";

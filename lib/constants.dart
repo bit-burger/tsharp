@@ -31,16 +31,6 @@ const Set<String> keywords = <String>{
   //Optional: ["params","assignment","call"]
 };
 
-const Set<String> extendable = <String>{
-  "if",
-  "while",
-  "for",
-  "else",
-  "return",
-  "assert",
-  "guard",
-};
-
 const Set<String> standart_values = {
   "true",
   "false",
@@ -51,6 +41,23 @@ const Set<String> standart_values = {
   "min",
   "max"
 };
+
+const Set<String> extendable = <String>{
+  "if",
+  "while",
+  "for",
+  "else",
+  "return",
+  "assert",
+  "guard",
+};
+
+const Set<String> ignored_by_operator_grouping = {
+  "operator",
+  "prefix",
+  "postfix",
+};
+
 const Map<String, String> backslashable_characters = {
   "n": "\n",
   "\\": "\\",
@@ -63,14 +70,15 @@ const Map<String, String> brackets = {
   "[": "]",
 };
 
-const String backslashable_characters_as_string = "\"\\n\", \"\\\\\", \"\\\"\""; //"\n", "\\", "\""
+const String backslashable_characters_as_string =
+    "\"\\n\", \"\\\\\", \"\\\"\""; //"\n", "\\", "\""
 
 const Set<String> forbidden_operators = {"=", "+=", "-=", "*=", "/="};
 
 const Set<String> ignored_operators = {"."};
 
 //anstatt List<List<String>>, List<Set<String>>
-const List<Set<String>> operator_higher_precedence= [
+const List<Set<String>> operator_higher_precedence = [
   {"&&"},
   {"||", "|"},
   {"??", "?"},
@@ -81,12 +89,10 @@ const List<Set<String>> operator_higher_precedence= [
   {"%", "^"},
 ];
 
-const List<Set<String>> operator_lower_precedence  = [
+const List<Set<String>> operator_lower_precedence = [
   {":", "::", ":?", ":??"},
   {";", ".", "...", "..<"},
 ];
-
-
 
 final operator_precedence_length =
     operator_lower_precedence.length + operator_higher_precedence.length + 1;
@@ -99,4 +105,5 @@ const postfixes = [
   ["?", ";", "!", "++", "--"]
 ];
 const error_space = "    ";
+const smaller_error_space = "  ";
 const anonymous_function_name = "[Anonymous]";

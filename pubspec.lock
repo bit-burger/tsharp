@@ -323,6 +323,15 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.0.0"
+  woozy_search:
+    dependency: "direct main"
+    description:
+      path: "."
+      ref: easy_access_matchresult2
+      resolved-ref: "3c2ed07c4679b6d1c85b07c1c13782f7f4ff61e0"
+      url: "https://github.com/bit-burger/woozy-search.git"
+    source: git
+    version: "2.0.1"
   yaml:
     dependency: transitive
     description:

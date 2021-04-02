@@ -1,5 +1,4 @@
 import 'package:tsharp/direct_values/simple_values.dart';
-import 'package:tsharp/instructions/instructions.dart';
 
 import '../future_values/future_values.dart';
 
@@ -7,13 +6,17 @@ import 'package:tsharp/constants.dart';
 
 import 'parse_debug.dart';
 import 'parse_error_handling.dart';
-import 'list_parsing.dart';
+
 import 'extensions.dart';
+
+import 'instruction_parsing.dart';
+import 'list_parsing.dart';
+import 'token_parsing.dart';
 
 FutureValue parseValueNoTrim(
     String value, int line, int character, ParseDebugStream stream,
     [bool clean = false]) {
-  if(value.trim().isEmpty)
+  if (value.trim().isEmpty)
     throw ParseException.single("Not a real value", line, character);
   final trim = value.trimLeft();
 
@@ -23,54 +26,55 @@ FutureValue parseValueNoTrim(
 
 //muss getrimmed sein
 FutureValue parseValue(
-    String value, int line, int character, ParseDebugStream stream,
+    String s, int line, int character, ParseDebugStream stream,
     [bool clean = false]) {
-  assert(value.trim().length == value.length);
-  if (value == "\$") return RecordReference("params", line, character);
-  if (value == "\$\$") return RecordReference("args", line, character);
-  if (value == "true") return PrimitiveValue(true, line, character);
-  if (value == "false") return PrimitiveValue(false, line, character);
-  if (value == "absent" || value == "_")
-    return PrimitiveValue(SpecialValues.absent, line, character);
-  if (value == "function") return FutureFunction([], line, character);
-  if (value == "min") return PrimitiveValue(SpecialValues.min, line, character);
-  if (value == "max") return PrimitiveValue(SpecialValues.max, line, character);
-  if (value == "infinity")
-    return PrimitiveValue(SpecialValues.infinity, line, character);
+  assert(s.trim().length == s.length);
+  switch(s) {
+    case "\$": return RecordReference("params", line, character);
+    case "\$\$": return RecordReference("args", line, character);
+    case "true": return PrimitiveValue(true, line, character);
+    case "false": return PrimitiveValue(false, line, character);
+    case "absent":
+    case "_": return PrimitiveValue(SpecialValues.absent, line, character);
+    case "function": return FutureFunction([], line, character);
+    case "min": return PrimitiveValue(SpecialValues.min, line, character);
+    case "max": return PrimitiveValue(SpecialValues.max, line, character);
+    case "infinity": return PrimitiveValue(SpecialValues.infinity, line, character);
+  }
+  assert(!standart_values.contains(s));
 
-  assert(!standart_values.contains(value));
-
-  final intParse = int.tryParse(value);
+  final intParse = int.tryParse(s);
   if (intParse != null) return PrimitiveValue(intParse, line, character);
-  final komParse = double.tryParse(value);
+  final komParse = double.tryParse(s);
   if (komParse != null) return PrimitiveValue(komParse, line, character);
-  final sub = value.substring(1);
+  final sub = s.substring(1);
   if (sub.containsOneOf(allowed_characters_for_identifiers)) {
-    if (value[0].containsOneOf(allowed_characters_for_identifiers)) if (keywords
-        .contains(value))
-      throw ParseException.single(
-        "Identifier cannot be a keyword. ",
+    if (s[0].containsOneOf(allowed_characters_for_identifiers)) if (keywords
+        .contains(s))
+      throw ParseException.singleWithExtraString(
+        "Identifier cannot be a keyword",
         line,
-        character + 1,
+        character,
+        s,
       );
     else
-      return VariableReference(value, line, character);
-    if (value[0] == "@") {
+      return VariableReference(s, line, character);
+    if (s[0] == "@") {
       if (sub.length == 3)
         return TypeReference(sub, line, character);
       else
         throw ParseException.single(
-          "A type reference must only be 3 characters long (not including the @).",
+          "A type reference must only be 3 characters long (not including the @)",
           line,
           character + 1,
         );
     }
-    if (value[0] == "#") return RecordReference(sub, line, character);
+    if (s[0] == "#") return RecordReference(sub, line, character);
   }
   if (clean) {
-    return easyValues(value, line, character, stream);
+    return easyValues(s, line, character, stream);
   } else {
-    return operatorParse(value, character, line, stream);
+    return operatorParse(s, character, line, stream);
   }
 }
 
@@ -120,8 +124,7 @@ FutureValue operatorParse(
         ;
       else if ((klammern.last.klammer == "{" && char == "}") ||
           (klammern.last.klammer == "(" && char == ")") ||
-          (klammern.last.klammer == "[" && char == "]"))
-        klammern.removeLast();
+          (klammern.last.klammer == "[" && char == "]")) klammern.removeLast();
     }
     if (wasBackslash) {
       wasBackslash = false;
@@ -140,8 +143,14 @@ FutureValue operatorParse(
   //throwt bei forbidden_operators (=) und bei ignoriert ignorierte (.)
   List<Operator> filteredOperators = operators.where((operator) {
     if (forbidden_operators.contains(operator.operator))
-      throw ParseException.single(
-          "Operator \"${operator.operator}\" not allowed", operator.line, operator.character);
+      stream.error(
+        "Operators are not allowed "
+        "to be one of the reserved operators "
+        "${forbidden_operators.toList().prettyPrint()}",
+        operator.line,
+        operator.character,
+        operator.character + (operator.end! - operator.begin),
+      );
     if (ignored_operators.contains(operator.operator)) return false;
     if (operator.begin == 0) {
       if (split[operator.end! + 1] == " ")
@@ -165,13 +174,15 @@ FutureValue operatorParse(
   if (filteredOperators.isEmpty && operators.length > 0) {
     if (operators.length > 2)
       throw ParseException.single(
-        "You cannot put write too operators next to each other,"
+        "You cannot put write two operators next to each other,"
                 " the operators in question might be: " +
             operators
                 .map((operator) =>
-                    "\"" + s.substring(operator.begin, operator.end! + 1) + "\"")
+                    "\"" +
+                    s.substring(operator.begin, operator.end! + 1) +
+                    "\"")
                 .toList(growable: false)
-                .prettyPrint,
+                .prettyPrint(),
         _line,
         _character,
         character,
@@ -269,7 +280,7 @@ FutureValue easyValues(
     String s, int line, int character, ParseDebugStream stream) {
   if (s.startsWith("\"") && s.endsWith("\""))
     return PrimitiveValue(
-        realString(s.substring(1, s.length - 1), line, character + 1),
+        realString(s.substring(1, s.length - 1), line, character + 1, stream),
         line,
         character);
   else if (s.startsWith("[") && s.endsWith("]")) {
@@ -278,7 +289,15 @@ FutureValue easyValues(
         parseList(sub, line, character + 1, stream), line, character);
   } else if (s.startsWith("{") && s.endsWith("}"))
     return FutureFunction(
-        /*parseToTokens(s.substring(1,s.length - 1),line,character + 1)*/ <Instruction>[],
+        parseInstructions(
+          parseToTokens(
+            s.substring(1, s.length - 1),
+            line,
+            character + 1,
+            stream,
+          ),
+          stream,
+        ),
         line,
         character);
   else if (s.endsWith(")")) if (s.startsWith("("))
@@ -293,8 +312,9 @@ FutureValue easyValues(
     "  - A reserved word was used as an identifier or in a wrong context (before line, after the line, on the line)\n"
     "  - A operator is missing\n"
     "  - A operator is written as a prefix or postfix, "
-    "to fix this insert at least one space on both ends or remove all space on bot ends\n"
-    "  - You tried to reference a variable, constant, type, or record but not all characters were one of \"$allowed_characters_for_identifiers\"",
+    "to fix this insert at least one space on both ends or remove all space on both ends\n"
+    "  - You tried to reference a variable, constant, type, or record but not all characters were one of \n"
+        "  \"$allowed_characters_for_identifiers\"",
     line,
     character,
     s,
@@ -357,10 +377,12 @@ FunctionCall functionCall(
   throw ParseException.unknown(_line, _character);
 }
 
-String realString(String s, int line, int character) {
+String realString(
+    String string, int line, int character, ParseDebugStream stream) {
   character--;
   var realString = "";
   var backslash = false;
+  final s = string.split("");
   for (int i = 0; i < s.length; i++) {
     character++;
     if (backslash) {
@@ -368,11 +390,12 @@ String realString(String s, int line, int character) {
         realString += backslashable_characters[s[i]]!;
         backslash = false;
       } else
-        throw ParseException.single(
-            "cannot backslash the character \"${s[i]}\", you can only backslash: " +
-                backslashable_characters_as_string,
-            line,
-            character);
+        stream.error(
+          "cannot backslash the character \"${s[i]}\", you can only backslash: " +
+              backslashable_characters_as_string,
+          line,
+          character,
+        );
     } else if (s[i] == "\\") {
       backslash = true;
       continue;
@@ -399,7 +422,7 @@ List<FutureValue> parseList(
   final List<FutureValue> values = <FutureValue>[];
   if (s.length == 1) return values;
   parseLists(s, (_s, line, character) {
-    if(_s == null) {
+    if (_s == null) {
       values.add(PrimitiveValue(SpecialValues.absent, line, character));
     } else {
       try {

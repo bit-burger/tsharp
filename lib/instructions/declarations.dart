@@ -5,10 +5,13 @@ import 'package:meta/meta.dart';
 
 import 'package:tsharp/debug.dart';
 
-import 'package:tsharp/future_values/future_values.dart';
 import 'package:tsharp/parsing/parse_error_handling.dart';
 import 'package:tsharp/parsing/parse_debug.dart';
 import 'package:tsharp/parsing/extensions.dart';
+
+import 'package:tsharp/future_values/future_values.dart';
+
+import 'package:tsharp/direct_values/direct_values.dart';
 
 import 'helper.dart' as helper;
 
@@ -16,61 +19,220 @@ abstract class Declaration extends Instruction {
   Declaration(int debugLine, int debugCharacter)
       : super(debugLine, debugCharacter);
 }
+// z.b.: ValidOperator auf stream, damit der Wert noch richtig überprüft werden kann
 
 //eine Declaration darf keinen Wert enthalten, var a = 3 sind zwei instructions: var a; a = 3;
 //eine Multiple Declaration muss den Wert direkt schon haben, nähmlich ein Array
 
 class DeclarationChecks {
-  static void atLeastTwoTokens(List<Token> tokens) {
-    if (tokens.length < 2)
+  static Declaration multipleOrSingleVarOrLet(
+      List<Token> tokens, bool isVariable, ParseDebugStream stream) {
+    FutureValue? futureValue;
+    if (tokens.length > 2) {
+      DeclarationChecks.atLeastFourTokens(tokens, stream);
+      futureValue = helper.parseValueOfToken(tokens[3], stream);
+    } else {
+      DeclarationChecks.atLeastTwoTokens(tokens, stream);
+    }
+    if (helper.isSomeList(tokens[1])) {
+      DeclarationChecks.checkCleannessOfMultipleIdentifiers(tokens, stream);
+      if (futureValue != null &&
+          !helper.isCorrectCompileTimeType<FutureArray>(futureValue))
+        throw ParseException.token(
+          "A multiple ${isVariable ? "variable" : "constant"} "
+          "declaration, has to be initialised with an array",
+          tokens[3],
+        );
+      return isVariable
+          ? MultipleVariableDeclaration(
+              helper.parseVariableLists(
+                tokens[1].token.substring(1, tokens[1].token.length - 1),
+                tokens[1].line!,
+                tokens[1].character!,
+                stream,
+              ),
+              futureValue,
+              tokens[0].line!,
+              tokens[0].character!,
+            )
+          : MultipleConstantDeclaration(
+              helper.parseVariableLists(
+                tokens[1].token.substring(1, tokens[1].token.length - 1),
+                tokens[1].line!,
+                tokens[1].character!,
+                stream,
+              ),
+              futureValue,
+              tokens[0].line!,
+              tokens[0].character!,
+            );
+    } else {
+      DeclarationChecks.validVariableName(tokens, stream);
+      return isVariable
+          ? SingleVariableDeclaration(tokens[1].token, futureValue,
+              tokens[0].line!, tokens[0].character!)
+          : SingleConstantDeclaration(tokens[1].token, futureValue,
+              tokens[0].line!, tokens[0].character!);
+    }
+  }
+
+  static void atLeastTwoTokens(List<Token> tokens, ParseDebugStream stream,
+      [bool hasToBeFour = false]) {
+    if (tokens.length < 2 && !hasToBeFour)
       throw ParseException.tokens(
         "This declaration (${tokens.first.token}) needs at least "
         "the declaration type and the identifier",
         tokens,
       );
+    if (tokens.length == 3) if (tokens[2].token == "=")
+      throw ParseException.single("After the \"=\" a value is expected",
+          tokens[2].line!, tokens[2].character!);
+    else if (!hasToBeFour)
+      throw ParseException.token(
+          "This declaration does not require \"${tokens[2].token}\"",
+          tokens[2]);
+    if (tokens.length > 4)
+      throw ParseException.tokens(
+        "This declaration is too long",
+        tokens.getRange(3, tokens.length).toList(growable: false),
+      );
   }
 
-  static void atLeastFourTokens(List<Token> tokens) {
+  static void maxTwoTokens(List<Token> tokens, ParseDebugStream stream) {
+    if (tokens.length > 2) if (tokens[2].token == "=")
+      throw ParseException.tokens(
+        "This declaration (${tokens.first.token}) "
+        "does not allow a initialisation value",
+        tokens.sublist(2).toList(growable: false),
+      );
+    else
+      throw ParseException.tokens(
+        "This Declaration (${tokens.first.token}) "
+        "should only consist of ${tokens[0].token} "
+        "and ${tokens[1].token}",
+        tokens.sublist(2).toList(growable: false),
+      );
+  }
+
+  static void atLeastFourTokens(List<Token> tokens, ParseDebugStream stream) {
+    atLeastTwoTokens(tokens, stream, true);
     if (tokens.length < 4)
       throw ParseException.tokens(
         "This declaration (${tokens.first.token}) needs "
         "the declaration type, identifier, an equals sign, and the value",
         tokens,
       );
-    if (!forbidden_operators.contains(tokens[3]))
+    if (tokens[2].token != "=")
       throw ParseException.tokens(
-        "This declaration (${tokens.first.token}) needs a value",
+        "This declaration (${tokens.first.token}) needs an equals sign "
+        "to receive a value",
         tokens,
       );
   }
 
-  static void validVariableName(String identifier, List<Token> tokens) {
-    if ((keywords.contains(identifier) || standart_values.contains(identifier)))
-      throw ParseException.token(
-          "Identifier cannot be named after a reserved word", tokens[1]);
-    if (allowed_characters_for_identifiers.containsOneOf(identifier))
-      throw ParseException.token(
-        "Identifier names are only allowed to contains the following characters: \n\"" +
-            allowed_characters_for_identifiers +
-            "\"",
-        tokens[1],
-      );
-  }
-
-  static void multipleVariableIdentifierIsNotClean(List<Token> tokens) {
+  static void checkCleannessOfMultipleIdentifiers(
+      List<Token> tokens, ParseDebugStream stream) {
     if (!tokens[1].clean)
       throw ParseException.token(
         "Not a valid variable group, "
-        "most likely an operator is trying to combine two variable groups: \n"
-        "  BAD -> [a,b,c] + [d,e]\n",
+        "most likely an operator is trying to combine two variable groups",
         tokens[1],
       );
   }
 
-  static void validVariableNameWithPrefix(String prefix, List<Token> tokens) {
+  static void validVariableName(List<Token> tokens, ParseDebugStream stream,
+      [String? identifier]) {
+    identifier ??= tokens[1].token;
+    if ((keywords.contains(identifier) || standart_values.contains(identifier)))
+      stream.tokenError(
+          "Identifier cannot be named after a reserved word", tokens[1]);
+    if (allowed_characters_for_identifiers.containsOneOf(identifier))
+      stream.tokenError(
+        "Identifier names are only allowed to contains the following characters: \n" +
+            smaller_error_space +
+            "\"$allowed_characters_for_identifiers\"",
+        tokens[1],
+      );
+  }
+
+  static void validVariableNameWithPrefix(
+      String prefix, List<Token> tokens, ParseDebugStream stream) {
     final sub = tokens[1].token.substring(1);
-    !(keywords.contains(tokens[1].token) &&
-        standart_values.contains(tokens[1].token));
+    if (tokens[1].token[0] != prefix) {
+      throw ParseException.single(
+        "This declaration (${tokens.first.token}) "
+        "requires the identifier to carry "
+        "the prefix \"$prefix\"",
+        tokens[1].line!,
+        tokens[1].character!,
+      );
+    }
+    if (tokens[1].token.length < 2)
+      stream.tokenError(
+        "The identifier is not valid, it is too short",
+        tokens[1],
+      );
+    validVariableName(tokens, stream, sub);
+  }
+
+  static void lengthIsValidTypeIdentifier(
+      List<Token> tokens, ParseDebugStream stream) {
+    if (tokens[1].token.length != 4) {
+      stream.tokenError(
+        "Type identifier is too ${tokens[1].token.length < 4 ? "short" : "long"}, "
+        "it has to be three characters long "
+        "(not including the \"@\")",
+        tokens[1],
+      );
+    }
+  }
+
+  static FutureValue giveValueWithCorrectType<T>(
+      List<Token> tokens, ParseDebugStream stream) {
+    FutureValue val;
+    val = helper.parseValueOfToken(tokens[3], stream);
+    if (!helper.isCorrectCompileTimeType<T>(val)) {
+      stream.tokenError(
+        "Value \"${tokens[3].token}\" is not of type ${T.toString()}",
+        tokens[3],
+      );
+    }
+    return val;
+  }
+
+  static void isValidOperator(List<Token> tokens, ParseDebugStream stream) {
+    if (allowed_characters_for_operators.containsOneOf(tokens[1].token))
+      stream.tokenError(
+        "Operators are only allowed to contain the following characters: \n" +
+            smaller_error_space +
+            "\"$allowed_characters_for_operators\"",
+        tokens[1],
+      );
+    if (forbidden_operators.contains(tokens[1].token))
+      stream.tokenError(
+        "Operators are not allowed "
+        "to be one of the reserved operators "
+        "${forbidden_operators.toList().prettyPrint()}",
+        tokens[1],
+      );
+  }
+
+  static FutureValue operatorChecks(
+      List<Token> tokens, ParseDebugStream stream) {
+    DeclarationChecks.atLeastFourTokens(tokens, stream);
+    DeclarationChecks.isValidOperator(tokens, stream);
+    return DeclarationChecks.giveValueWithCorrectType<FutureFunction>(
+        tokens, stream);
+  }
+
+  static void isNotOnlyUnderscoreEvent(
+      List<Token> tokens, ParseDebugStream stream) {
+    if (tokens[1].token == "_")
+      stream.tokenWarning(
+        "This declaration (${tokens[0].token} "
+        "cannot have \"_\" as the identifier",
+        tokens[1],
+      );
   }
 }
 
@@ -98,7 +260,7 @@ class MultipleVariableOrConstantDeclarationRestAsArrayVariable
 abstract class MultipleDeclaration extends Declaration {
   final List<MultipleVariableOrConstantDeclarationVariable>
       variables; //Variablen und ihre default Werte in einer reihe korresponierend zu dem array
-  final FutureValue arrayValue;
+  final FutureValue? arrayValue;
 
   MultipleDeclaration(
       this.variables, this.arrayValue, int debugLine, int debugCharacter)
@@ -108,7 +270,7 @@ abstract class MultipleDeclaration extends Declaration {
 class MultipleVariableDeclaration extends MultipleDeclaration {
   MultipleVariableDeclaration(
       List<MultipleVariableOrConstantDeclarationVariable> variables,
-      FutureValue arrayValue,
+      FutureValue? arrayValue,
       int debugLine,
       int debugCharacter)
       : super(variables, arrayValue, debugLine, debugCharacter);
@@ -117,7 +279,7 @@ class MultipleVariableDeclaration extends MultipleDeclaration {
 class MultipleConstantDeclaration extends MultipleDeclaration {
   MultipleConstantDeclaration(
       List<MultipleVariableOrConstantDeclarationVariable> variables,
-      FutureValue arrayValue,
+      FutureValue? arrayValue,
       int debugLine,
       int debugCharacter)
       : super(variables, arrayValue, debugLine, debugCharacter);
@@ -136,76 +298,79 @@ class ParameterDeclaration extends MultipleVariableDeclaration {
 // das ist dann auch sehr einfach mit den defaults, die dann ja absent ersetzen
 
 abstract class SingleDeclaration extends Declaration {
-  final String variable;
+  final String? variable;
   final FutureValue? value;
+
   SingleDeclaration(
-      this.variable, this.value, int debugLine, int debugCharacter)
-      : super(debugLine, debugCharacter);
-}
+      String variable, FutureValue value, int debugLine, int debugCharacter)
+      : this.value = value,
+        this.variable = variable == "_" ? null : variable,
+        super(debugLine, debugCharacter);
 
-abstract class NormalIdentifierSingleDeclaration extends SingleDeclaration {
-  NormalIdentifierSingleDeclaration(List<Token> tokens)
-      : super(tokens[1].token, null, 0, 0) {
-    if (tokens.length < 2)
-      throw ParseException.tokens(
-          "A declaration needs at least the declaration type and the identifier",
-          tokens);
-    if (!helper.isValidVariableName(tokens[1].token))
-      throw ParseException.token("The identifier is not allowed", tokens[1]);
-  }
-}
-
-abstract class GuaranteedValueNormalIdentifierSingleDeclaration
-    extends NormalIdentifierSingleDeclaration {
-  GuaranteedValueNormalIdentifierSingleDeclaration(List<Token> tokens)
-      : super(tokens);
+  SingleDeclaration._(
+      String variable, this.value, int debugLine, int debugCharacter)
+      : this.variable = (variable == "_" ? null : variable),
+        super(debugLine, debugCharacter);
 }
 
 //var _ = 3 dann kann der variablen name = null sein (genause wie bei multpilevariabledeclarationO
 class SingleVariableDeclaration extends SingleDeclaration {
   SingleVariableDeclaration(
-      String variable, FutureValue value, int debugLine, int debugCharacter)
-      : super(variable, value, debugLine, debugCharacter);
+      String variable, FutureValue? value, int debugLine, int debugCharacter)
+      : super._(variable, value, debugLine, debugCharacter);
 }
 
 class SingleConstantDeclaration extends SingleDeclaration {
   SingleConstantDeclaration(
-      String variable, FutureValue value, int debugLine, int debugCharacter)
-      : super(variable, value, debugLine, debugCharacter);
+      String variable, FutureValue? value, int debugLine, int debugCharacter)
+      : super._(variable, value, debugLine, debugCharacter);
 }
 
-class TypeDefinition extends SingleDeclaration {
-  TypeDefinition(
-      String variable, FutureValue value, int debugLine, int debugCharacter)
-      : super(variable, value, debugLine, debugCharacter);
+class SimpleDeclaration extends SingleDeclaration {
+  SimpleDeclaration(
+      List<Token> tokens, FutureValue value, ParseDebugStream stream)
+      : super(
+          tokens[0].token,
+          value,
+          tokens[0].line!,
+          tokens[0].character!,
+        );
 }
 
-class RecordDefinition extends SingleDeclaration {
-  RecordDefinition(
-      String record, FutureValue value, int debugLine, int debugCharacter)
-      : super(record, value, debugLine, debugCharacter);
+class TypeDefinition extends SimpleDeclaration {
+  TypeDefinition(List<Token> tokens, ParseDebugStream stream)
+      : super(
+            tokens.removeFirstOfIdentifier(),
+            DeclarationChecks.giveValueWithCorrectType<TSType>(tokens, stream),
+            stream);
 }
 
-class EventDeclaration extends SingleDeclaration {
-  EventDeclaration(
-      String event, FutureValue value, int debugLine, int debugCharacter)
-      : super(event, value, debugLine, debugCharacter);
+class RecordDefinition extends SimpleDeclaration {
+  RecordDefinition(List<Token> tokens, ParseDebugStream stream)
+      : super(tokens.removeFirstOfIdentifier(),
+            helper.parseValueOfToken(tokens.last, stream), stream);
 }
 
-class OperatorDeclaration extends SingleDeclaration {
-  OperatorDeclaration(
-      String operator, FutureValue value, int debugLine, int debugCharacter)
-      : super(operator, value, debugLine, debugCharacter);
+class EventDeclaration extends SimpleDeclaration {
+  EventDeclaration(List<Token> tokens, ParseDebugStream stream)
+      : super(
+            tokens,
+            DeclarationChecks.giveValueWithCorrectType<FutureFunction>(
+                tokens, stream),
+            stream);
+}
+
+class OperatorDeclaration extends SimpleDeclaration {
+  OperatorDeclaration(List<Token> tokens, ParseDebugStream stream)
+      : super(tokens, DeclarationChecks.operatorChecks(tokens, stream), stream);
 }
 
 class PrefixDeclaration extends OperatorDeclaration {
-  PrefixDeclaration(
-      String prefix, FutureValue value, int debugLine, int debugCharacter)
-      : super(prefix, value, debugLine, debugCharacter);
+  PrefixDeclaration(List<Token> tokens, ParseDebugStream stream)
+      : super(tokens, stream);
 }
 
 class PostfixDeclaration extends OperatorDeclaration {
-  PostfixDeclaration(
-      String postfix, FutureValue value, int debugLine, int debugCharacter)
-      : super(postfix, value, debugLine, debugCharacter);
+  PostfixDeclaration(List<Token> tokens, ParseDebugStream stream)
+      : super(tokens, stream);
 }
